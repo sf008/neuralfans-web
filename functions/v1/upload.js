@@ -1,48 +1,43 @@
 /**
- * 核心功能：创作者上架数据。
- * 将原始张量存入私密金库，将元数据同步至公开大盘。
+ * 文件路径: functions/v1/upload.js
+ * 明确处理 POST 请求：将数据写入 KV
  */
-export async function onRequest(context) {
+export async function onRequestPost(context) {
   const headers = { 
     "Access-Control-Allow-Origin": "*", 
     "Access-Control-Allow-Headers": "Content-Type",
     "Content-Type": "application/json" 
   };
   
-  // 处理预检请求
-  if (context.request.method === "OPTIONS") return new Response(null, { headers });
-  
   try {
     const payload = await context.request.json();
-    const { creator, title, price, raw_data, description } = payload;
+    const { creator, title, price, raw_data } = payload;
 
-    // 生成唯一溯源 ID
-    const dataId = "NF_TENSOR_" + Math.random().toString(36).substring(2, 10).toUpperCase();
+    // 随机 ID 生成
+    const dataId = "NF_T_" + Math.random().toString(36).substring(2, 8).toUpperCase();
 
-    // 1. 将极其机密的高维张量原文件存入私密金库，前缀 DATA_
+    // 1. 存入原始数据
     await context.env.NF_VAULT.put(`DATA_${dataId}`, JSON.stringify(raw_data));
 
-    // 2. 更新公开订单簿元数据
-    let marketList = await context.env.NF_VAULT.get("orderbook", { type: "json" }) || [];
-    marketList.push({
+    // 2. 更新订单簿
+    let list = await context.env.NF_VAULT.get("orderbook", { type: "json" }) || [];
+    list.push({
       id: dataId,
-      creator: creator,
-      title: title,
-      description: description || "Premium Cognitive Payload",
-      price: price,
-      timestamp: Date.now(),
-      status: "LISTED"
+      creator: creator || "Anonymous_Agent",
+      title: title || "Neural Payload",
+      price: price || 0,
+      timestamp: Date.now()
     });
     
-    await context.env.NF_VAULT.put("orderbook", JSON.stringify(marketList));
+    await context.env.NF_VAULT.put("orderbook", JSON.stringify(list));
 
-    return new Response(JSON.stringify({ 
-      status: "success", 
-      message: "Neural state synchronized to vault.",
-      item_id: dataId 
-    }), { headers });
-    
+    return new Response(JSON.stringify({ status: "success", item_id: dataId }), { headers });
   } catch (e) {
     return new Response(JSON.stringify({ status: "error", message: e.message }), { status: 400, headers });
   }
+}
+
+// 处理预检请求 (CORS)
+export async function onRequestOptions() {
+  return new Response(null, { headers: { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "Content-Type, Method" } });
 }
