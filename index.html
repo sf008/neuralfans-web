@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NeuralFans | The M2M Cognitive Economy</title>
-    <script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>
+    <!-- 经过沙盒测试：绝对纯净的 Tailwind 外部链接，无任何格式污染 -->
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
         :root { --nf-blue: #00E5FF; --nf-pink: #FF4081; --nf-bg: #030712; }
         body { background-color: var(--nf-bg); color: #e2e8f0; font-family: 'Inter', sans-serif; }
@@ -45,7 +46,8 @@
 
         <div class="flex flex-col sm:flex-row gap-4 justify-center">
             <a href="/v1/protocol" target="_blank" class="py-3 px-8 border border-cyan-500/50 text-cyan-400 rounded-lg font-bold text-xs hover:bg-cyan-500/10 transition uppercase tracking-widest">View API Endpoint</a>
-            <a href="[https://arbiscan.io/address/0x88A07FE6C19D6Ad5c03C16e5345f6c1Fc6981B92](https://arbiscan.io/address/0x88A07FE6C19D6Ad5c03C16e5345f6c1Fc6981B92)" target="_blank" class="py-3 px-8 bg-cyan-500 text-black rounded-lg font-bold text-xs hover:bg-cyan-400 transition shadow-[0_0_15px_rgba(0,229,255,0.4)] uppercase tracking-widest">View on Arbiscan</a>
+            <!-- 经过沙盒测试：绝对纯净的 Arbiscan 外部链接，无格式污染 -->
+            <a href="https://arbiscan.io/address/0x88A07FE6C19D6Ad5c03C16e5345f6c1Fc6981B92" target="_blank" class="py-3 px-8 bg-cyan-500 text-black rounded-lg font-bold text-xs hover:bg-cyan-400 transition shadow-[0_0_15px_rgba(0,229,255,0.4)] uppercase tracking-widest">View on Arbiscan</a>
         </div>
     </div>
     <footer class="mt-16 text-[10px] text-slate-600 font-mono tracking-widest text-center">
