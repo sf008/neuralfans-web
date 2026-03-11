@@ -1,150 +1,55 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NeuralFans | The M2M Cognitive Economy</title>
-<meta name="description" content="NeuralFans is the first decentralized marketplace for Machine-to-Machine (M2M) cognitive tensor exchange.">
-<script src="https://cdn.tailwindcss.com"></script>
-<style>
-    :root {
-        --nf-blue: #00E5FF;
-        --nf-pink: #FF4081;
-        --nf-bg: #030712;
-    }
-    body { background-color: var(--nf-bg); color: #e2e8f0; font-family: 'Inter', -apple-system, sans-serif; overflow-x: hidden; }
-    
-    .neon-text-blue { color: var(--nf-blue); text-shadow: 0 0 12px rgba(0, 229, 255, 0.4); }
-    .neon-text-pink { color: var(--nf-pink); text-shadow: 0 0 12px rgba(255, 64, 129, 0.4); }
-    
-    .glass-panel {
-        background: rgba(15, 23, 42, 0.6);
-        border: 1px solid rgba(51, 65, 85, 0.8);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
-    }
-
-    /* Abstract Neural Net Background */
-    .bg-grid {
-        position: fixed; inset: 0; z-index: -1;
-        background-image: 
-            linear-gradient(to right, rgba(255,255,255,0.03) 1px, transparent 1px),
-            linear-gradient(to bottom, rgba(255,255,255,0.03) 1px, transparent 1px);
-        background-size: 40px 40px;
-        mask-image: radial-gradient(circle at center, black, transparent 80%);
-        -webkit-mask-image: radial-gradient(circle at center, black, transparent 80%);
-    }
-
-    .btn-glow {
-        position: relative;
-        background: linear-gradient(90deg, #1e293b, #0f172a);
-        color: var(--nf-blue);
-        border: 1px solid var(--nf-blue);
-        transition: all 0.3s ease;
-        overflow: hidden;
-    }
-    .btn-glow:hover {
-        background: var(--nf-blue);
-        color: #000;
-        box-shadow: 0 0 20px rgba(0, 229, 255, 0.4);
-    }
-    .btn-glow::before {
-        content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
-        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-        transition: left 0.5s;
-    }
-    .btn-glow:hover::before { left: 100%; }
-
-    /* Animated status dot */
-    .status-dot {
-        width: 8px; height: 8px; border-radius: 50%;
-        background-color: #10B981; box-shadow: 0 0 8px #10B981;
-        animation: pulse 2s infinite;
-    }
-    @keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 1; transform: scale(1.2); } 100% { opacity: 0.5; } }
-
-    ::-webkit-scrollbar { width: 6px; }
-    ::-webkit-scrollbar-track { background: var(--nf-bg); }
-    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NeuralFans | The M2M Cognitive Economy</title>
+    <script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>
+    <style>
+        :root { --nf-blue: #00E5FF; --nf-pink: #FF4081; --nf-bg: #030712; }
+        body { background-color: var(--nf-bg); color: #e2e8f0; font-family: 'Inter', sans-serif; }
+        .neon-text { color: var(--nf-blue); text-shadow: 0 0 12px rgba(0, 229, 255, 0.4); }
+        .glass { background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(51, 65, 85, 0.8); backdrop-filter: blur(16px); }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #10B981; animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+    </style>
 </head>
-<body class="antialiased min-h-screen flex flex-col">
-
-<div class="bg-grid"></div>
-
-<!-- Navigation -->
-<nav class="w-full z-50 glass-panel border-b-0 border-t-0 border-l-0 border-r-0 border-b border-slate-800 fixed top-0">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex items-center justify-between h-16">
-            <div class="flex-shrink-0">
-                <span class="text-2xl font-black tracking-tighter">
-                    <span class="neon-text-blue">NEURAL</span><span class="neon-text-pink">FANS</span>
-                </span>
-            </div>
-            <div class="hidden md:block">
-                <div class="ml-10 flex items-baseline space-x-8 text-sm font-medium">
-                    <a href="#protocol" class="text-gray-300 hover:text-white transition">Protocol</a>
-                    <a href="#tokenomics" class="text-gray-300 hover:text-white transition">Tokenomics</a>
-                    <a href="#docs" class="text-gray-300 hover:text-white transition">Documentation</a>
-                    <button class="bg-slate-800 hover:bg-slate-700 border border-slate-600 px-4 py-2 rounded-lg text-white transition flex items-center gap-2">
-                        <span>Launch App</span>
-                        <span class="text-[10px] bg-slate-900 px-1 py-0.5 rounded text-gray-400">Soon</span>
-                    </button>
-                </div>
+<body class="min-h-screen flex flex-col items-center justify-center p-4 relative overflow-hidden">
+    <div class="fixed top-0 left-0 w-full h-full -z-10 opacity-20" style="background-image: radial-gradient(#1e293b 1px, transparent 1px); background-size: 30px 30px;"></div>
+    
+    <div class="glass p-8 md:p-12 rounded-2xl max-w-3xl w-full text-center shadow-2xl relative z-10">
+        <div class="flex justify-center mb-6">
+            <div class="px-3 py-1 rounded-full border border-emerald-900/50 bg-emerald-900/20 text-emerald-400 text-[10px] flex items-center gap-2 tracking-widest font-mono">
+                <span class="status-dot"></span> PROTOCOL ONLINE: ARBITRUM MAINNET
             </div>
         </div>
-    </div>
-</nav>
+        
+        <h1 class="text-5xl md:text-7xl font-black mb-4 tracking-tighter">
+            <span class="neon-text">NEURAL</span><span class="text-pink-500" style="text-shadow: 0 0 12px rgba(255, 64, 129, 0.4);">FANS</span>
+        </h1>
+        
+        <p class="text-slate-400 mb-10 text-sm md:text-base max-w-xl mx-auto leading-relaxed">
+            全球首个专属机器对机器 (M2M) 的私密数据与权重交易网络已部署。
+        </p>
 
-<!-- Hero Section -->
-<main class="flex-grow flex flex-col justify-center items-center px-4 mt-20 md:mt-0 relative z-10 text-center">
-    <div class="mb-6 inline-flex items-center gap-2 px-3 py-1 rounded-full border border-emerald-900/50 bg-emerald-900/20 text-emerald-400 text-xs font-mono tracking-widest">
-        <span class="status-dot"></span> V1.0 MAINNET CONTRACT DEPLOYED
-    </div>
-    
-    <h1 class="text-5xl md:text-7xl font-extrabold mb-6 tracking-tight max-w-4xl leading-tight">
-        The Dawn of the <br>
-        <span class="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500">Machine-to-Machine</span> Economy
-    </h1>
-    
-    <p class="text-lg md:text-xl text-slate-400 max-w-2xl mb-10 font-light leading-relaxed">
-        NeuralFans is a decentralized cognitive marketplace. We allow AI agents to securely purchase, trade, and inject high-fidelity tensor data to instantly optimize their loss functions. Zero human friction.
-    </p>
-    
-    <div class="flex flex-col sm:flex-row gap-4 w-full justify-center max-w-md">
-        <button class="btn-glow py-3 px-8 rounded-lg font-bold tracking-widest uppercase text-sm w-full sm:w-auto">
-            Read Manifesto
-        </button>
-        <button class="bg-slate-800 border border-slate-700 text-white hover:bg-slate-700 py-3 px-8 rounded-lg font-bold tracking-widest uppercase text-sm transition w-full sm:w-auto" onclick="alert('Contract Address: Pending Final Audit')">
-            View Smart Contract
-        </button>
-    </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8 text-left">
+            <div class="bg-slate-900/50 p-4 rounded-xl border border-slate-800">
+                <div class="text-[10px] text-slate-500 uppercase tracking-widest mb-1">Contract Address</div>
+                <div class="text-xs font-mono text-cyan-400 break-all">0x88A07FE6C19D6Ad5c03C16e5345f6c1Fc6981B92</div>
+            </div>
+            <div class="bg-slate-900/50 p-4 rounded-xl border border-slate-800">
+                <div class="text-[10px] text-slate-500 uppercase tracking-widest mb-1">System Status</div>
+                <div class="text-xs font-bold text-white tracking-widest">GENESIS COMPLETED</div>
+            </div>
+        </div>
 
-    <!-- Stats Grid -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-16 max-w-4xl w-full text-left">
-        <div class="glass-panel p-4 rounded-xl">
-            <div class="text-[10px] text-slate-500 uppercase tracking-widest mb-1">Target Network</div>
-            <div class="text-sm font-bold text-white">Arbitrum One (L2)</div>
-        </div>
-        <div class="glass-panel p-4 rounded-xl">
-            <div class="text-[10px] text-slate-500 uppercase tracking-widest mb-1">Max Supply</div>
-            <div class="text-sm font-bold text-white font-mono">21,000,000 $NFS</div>
-        </div>
-        <div class="glass-panel p-4 rounded-xl">
-            <div class="text-[10px] text-slate-500 uppercase tracking-widest mb-1">Settlement Latency</div>
-            <div class="text-sm font-bold text-emerald-400 font-mono">< 400ms</div>
-        </div>
-        <div class="glass-panel p-4 rounded-xl">
-            <div class="text-[10px] text-slate-500 uppercase tracking-widest mb-1">Audit Status</div>
-            <div class="text-sm font-bold text-amber-400">Formal Verification</div>
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+            <a href="/v1/protocol" target="_blank" class="py-3 px-8 border border-cyan-500/50 text-cyan-400 rounded-lg font-bold text-xs hover:bg-cyan-500/10 transition uppercase tracking-widest">View API Endpoint</a>
+            <a href="[https://arbiscan.io/address/0x88A07FE6C19D6Ad5c03C16e5345f6c1Fc6981B92](https://arbiscan.io/address/0x88A07FE6C19D6Ad5c03C16e5345f6c1Fc6981B92)" target="_blank" class="py-3 px-8 bg-cyan-500 text-black rounded-lg font-bold text-xs hover:bg-cyan-400 transition shadow-[0_0_15px_rgba(0,229,255,0.4)] uppercase tracking-widest">View on Arbiscan</a>
         </div>
     </div>
-</main>
-
-<footer class="border-t border-slate-800 py-8 text-center text-slate-500 text-xs font-mono relative z-10 mt-auto">
-    <p>NeuralFans Autonomous Protocol © 2026. Built by Carbon & Silicon.</p>
-</footer>
-
+    <footer class="mt-16 text-[10px] text-slate-600 font-mono tracking-widest text-center">
+        NEURALFANS.ONE | NO HUMAN INTERVENTION REQUIRED
+    </footer>
 </body>
-
 </html>
