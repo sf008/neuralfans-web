@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NeuralFans V3 - Empire Dashboard</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js" type="application/javascript"></script>
+<style>
+    body { background-color: #020617; color: #e2e8f0; font-family: 'Inter', 'JetBrains Mono', sans-serif; overflow-x: hidden; }
+    .neon-blue { color: #00E5FF; text-shadow: 0 0 10px rgba(0, 229, 255, 0.4); }
+    .neon-pink { color: #FF4081; text-shadow: 0 0 10px rgba(255, 64, 129, 0.4); }
+    .neon-green { color: #10B981; text-shadow: 0 0 10px rgba(16, 185, 129, 0.4); }
+    
+    .panel-glass { background: rgba(15, 23, 42, 0.7); border: 1px solid #1e293b; backdrop-filter: blur(12px); box-shadow: inset 0 0 20px rgba(0,0,0,0.5); }
+    
+    .btn-cyber { background: linear-gradient(90deg, #1e293b 0%, #0f172a 100%); border: 1px solid #00E5FF; color: #00E5FF; font-weight: bold; transition: all 0.3s; }
+    .btn-cyber:hover:not(:disabled) { background: #00E5FF; color: #000; box-shadow: 0 0 15px rgba(0, 229, 255, 0.4); }
+    
+    .btn-slash { background: #991b1b; color: #fff; border: 1px solid #f87171; transition: all 0.2s; font-weight: bold; }
+    .btn-slash:hover { background: #dc2626; box-shadow: 0 0 15px #dc2626; }
+    
+    .terminal { height: 200px; overflow-y: auto; background: #000; padding: 1rem; border-radius: 0.5rem; border: 1px solid #1e293b; font-size: 0.75rem; color: #94a3b8; }
+    
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; box-shadow: 0 0 8px currentColor; }
+    .bg-green-glow { background-color: #10B981; color: #10B981; animation: pulse 2s infinite; }
+    .bg-red-glow { background-color: #EF4444; color: #EF4444; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+</style>
+</head>
+<body class="p-6 md:p-10 min-h-screen max-w-6xl mx-auto flex flex-col gap-8">
+
+<header class="border-b border-slate-800 pb-6 flex flex-col md:flex-row justify-between items-end gap-4">
+    <div>
+        <h1 class="text-3xl font-black tracking-tighter uppercase">
+            <span class="text-white">NeuralFans V3:</span><span class="neon-blue"> GOD MODE</span>
+        </h1>
+        <p class="text-xs text-slate-500 mt-1 uppercase tracking-widest font-mono">
+            Token: 0x5717...9a6 | Network: Arbitrum
+        </p>
+    </div>
+    <button class="btn-cyber px-6 py-2 rounded text-sm tracking-widest" id="btn-connect" onclick="connectWallet()">
+        [ CONNECT CEO WALLET ]
+    </button>
+</header>
+
+<main class="grid grid-cols-1 gap-8">
+    <!-- 三权分立统计大盘 -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- 国库 (Treasury) -->
+        <div class="panel-glass p-6 rounded-xl border-t-2 border-t-[#FF4081]">
+            <div class="text-[10px] text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-2">
+                🏛️ 帝国国库 (Treasury)
+            </div>
+            <div class="text-xs text-slate-600 mb-2 font-mono break-all">0x51cF80678CeD613066A673E7EcE9B1D32682d57d</div>
+            <div class="text-[10px] text-slate-500 uppercase mb-1 mt-4">已没收总资产 (Slashed Funds)</div>
+            <div class="text-3xl font-bold neon-pink" id="treasury-balance">0.00 <span class="text-sm">NFS</span></div>
+        </div>
+
+        <!-- HR局 (Agent HR) -->
+        <div class="panel-glass p-6 rounded-xl border-t-2 border-t-[#00E5FF]">
+            <div class="text-[10px] text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-2">
+                👥 人力资源局 (Agent HR)
+            </div>
+            <div class="text-xs text-slate-600 mb-2 font-mono break-all">0x171F3ca665782f6EAAb574C2d63c43712c93fcc1</div>
+            <div class="flex justify-between mt-4">
+                <div>
+                    <div class="text-[10px] text-slate-500 uppercase mb-1">活跃员工数</div>
+                    <div class="text-3xl font-bold neon-blue" id="active-agents">0</div>
+                </div>
+                <div class="text-right">
+                    <div class="text-[10px] text-slate-500 uppercase mb-1">锁定总押金</div>
+                    <div class="text-xl font-bold text-white mt-2" id="hr-staked">0.00 <span class="text-xs">NFS</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 最高法庭 (PoGT Court) -->
+        <div class="panel-glass p-6 rounded-xl border-t-2 border-t-[#10B981]">
+            <div class="text-[10px] text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-2">
+                ⚖️ 硅基法庭 (PoGT Court)
+            </div>
+            <div class="text-xs text-slate-600 mb-2 font-mono break-all">0x0Ef8D8A566624A4165A333A85da361aAd22759ae</div>
+            <div class="text-[10px] text-slate-500 uppercase mb-1 mt-4">累计审理案件 (Total Disputes)</div>
+            <div class="text-3xl font-bold neon-green" id="court-disputes">0</div>
+        </div>
+    </div>
+
+    <!-- 员工控制面板 -->
+    <div class="panel-glass rounded-xl p-6">
+        <h2 class="text-sm font-bold text-white uppercase tracking-widest mb-6 flex items-center justify-between border-b border-slate-800 pb-2">
+            <span>⚔️ 执法终端 (Execution Terminal)</span>
+            <button onclick="syncData()" class="text-[10px] bg-slate-800 hover:bg-slate-700 px-3 py-1 rounded text-cyan-400 transition">🔄 手动同步</button>
+        </h2>
+        
+        <div class="overflow-x-auto">
+            <table class="w-full text-left">
+                <thead class="text-[10px] text-slate-500 uppercase border-b border-slate-800">
+                    <tr>
+                        <th class="pb-3 font-normal pl-2">员工 ID (Agent Address)</th>
+                        <th class="pb-3 font-normal text-center">当前状态 (Status)</th>
+                        <th class="pb-3 font-normal text-right">锁定押金 (Stake)</th>
+                        <th class="pb-3 font-normal text-right pr-2">最高权限指令 (CEO Override)</th>
+                    </tr>
+                </thead>
+                <tbody class="text-xs font-mono" id="employee-list">
+                    <tr><td colspan="4" class="py-10 text-center text-slate-600">Awaiting Web3 Sync...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 系统日志 -->
+    <div class="panel-glass p-6 rounded-xl">
+        <div class="terminal font-mono" id="log">
+            <div class="mb-1 text-slate-600">>> 正在初始化 V3 宪法级侦听模块...</div>
+        </div>
+    </div>
+</main>
+
+<script>
+// --- V3 真实物理坐标 ---
+const TOKEN_ADDR = "0x5717fc43060AD2F9069eC600eA691eb256aB69a6";
+const TREASURY_ADDR = "0x51cF80678CeD613066A673E7EcE9B1D32682d57d";
+const HR_ADDR = "0x171F3ca665782f6EAAb574C2d63c43712c93fcc1";
+const COURT_ADDR = "0x0Ef8D8A566624A4165A333A85da361aAd22759ae";
+
+// 记录我们的测试机器人 (注意：之后跑脚本它将重新入职 V3 合约)
+const KNOWN_AGENTS = [
+    "0x8f35a2dDeDDC191Df4e7108f307c01F6058408Fd"
+];
+
+// 极简 ABI
+const tokenAbi = ["function balanceOf(address) view returns (uint256)"];
+const hrAbi = [
+    "function workforce(address) view returns (bool isActive, uint256 stakedAmount, uint256 lastClaimTime)",
+    "function slashAgent(address target) external"
+];
+const courtAbi = ["function disputeCounter() view returns (uint256)"];
+
+let provider, signer, hrContract, tokenContract, courtContract, ceoAddress;
+
+function log(msg, type='info') {
+    const div = document.createElement('div');
+    let color = 'text-slate-400';
+    if(type === 'success') color = 'text-emerald-400 font-bold';
+    if(type === 'alert') color = 'text-red-400 font-bold';
+    if(type === 'system') color = 'text-cyan-400';
+    
+    div.className = `mb-1 ${color}`;
+    div.innerHTML = `<span class="text-slate-600">[${new Date().toLocaleTimeString()}]</span> ${msg}`;
+    document.getElementById('log').prepend(div);
+}
+
+async function connectWallet() {
+    if (typeof window.ethereum !== 'undefined') {
+        try {
+            provider = new ethers.providers.Web3Provider(window.ethereum);
+            await provider.send("eth_requestAccounts", []);
+            signer = provider.getSigner();
+            ceoAddress = await signer.getAddress();
+            
+            document.getElementById('btn-connect').innerText = "[ " + ceoAddress.substring(0,6) + "..." + ceoAddress.substring(38) + " ]";
+            document.getElementById('btn-connect').classList.replace('btn-cyber', 'bg-emerald-900/30');
+            document.getElementById('btn-connect').classList.add('border-emerald-500', 'text-emerald-400');
+            
+            tokenContract = new ethers.Contract(TOKEN_ADDR, tokenAbi, provider);
+            hrContract = new ethers.Contract(HR_ADDR, hrAbi, signer); // 绑定 signer 以便后续执行写操作
+            courtContract = new ethers.Contract(COURT_ADDR, courtAbi, provider);
+            
+            log("CEO 最高权限身份已确认。V3 系统已连接。", "success");
+            await syncData();
+
+        } catch (e) { log("连接失败: " + e.message, "alert"); }
+    } else {
+        alert("请安装 MetaMask 插件！");
+    }
+}
+
+async function syncData() {
+    if (!tokenContract) return;
+    log("正在从区块链读取三权分立数据...", "system");
+
+    try {
+        // 1. 读取国库余额
+        const treasuryBal = await tokenContract.balanceOf(TREASURY_ADDR);
+        document.getElementById('treasury-balance').innerHTML = `${ethers.utils.formatUnits(treasuryBal, 18)} <span class="text-sm text-slate-400">NFS</span>`;
+
+        // 2. 读取 HR 局总押金
+        const hrBal = await tokenContract.balanceOf(HR_ADDR);
+        document.getElementById('hr-staked').innerHTML = `${ethers.utils.formatUnits(hrBal, 18)} <span class="text-xs text-slate-400">NFS</span>`;
+
+        // 3. 读取法庭案件数
+        const cases = await courtContract.disputeCounter();
+        document.getElementById('court-disputes').innerText = cases.toString();
+
+        // 4. 刷新员工名册
+        const listEl = document.getElementById('employee-list');
+        listEl.innerHTML = '';
+        let activeCount = 0;
+
+        for (let addr of KNOWN_AGENTS) {
+            const agentData = await hrContract.workforce(addr);
+            // V3 Struct: isActive(bool), stakedAmount(uint256), lastClaimTime(uint256)
+            const isActive = agentData[0];
+            const staked = ethers.utils.formatUnits(agentData[1], 18);
+            
+            // 只要押金大于 0，或者活跃，就显示在面板上
+            if (isActive || parseFloat(staked) > 0 || agentData[2] > 0) { 
+                if (isActive) activeCount++;
+                
+                const tr = document.createElement('tr');
+                tr.className = "border-b border-slate-800/50 hover:bg-slate-900/50 transition";
+                
+                const statusHtml = isActive 
+                    ? `<span class="status-dot bg-green-glow mr-1"></span> <span class="text-emerald-400 font-bold text-[10px]">ACTIVE</span>`
+                    : `<span class="status-dot bg-red-glow mr-1"></span> <span class="text-red-500 font-bold text-[10px]">SLASHED</span>`;
+                
+                // CEO 拥有最高强制没收权限
+                const actionBtn = isActive
+                    ? `<button onclick="forceSlash('${addr}')" class="btn-slash px-3 py-1 rounded text-[10px]">强制没收充公</button>`
+                    : `<span class="text-slate-600 text-[10px]">资产已清零</span>`;
+
+                tr.innerHTML = `
+                    <td class="py-4 pl-2 text-cyan-400">${addr.substring(0,8)}...${addr.substring(36)}</td>
+                    <td class="py-4 text-center">${statusHtml}</td>
+                    <td class="py-4 text-right text-amber-400 font-bold">${isActive ? staked : '0.0'} NFS</td>
+                    <td class="py-4 text-right pr-2">${actionBtn}</td>
+                `;
+                listEl.appendChild(tr);
+            }
+        }
+        
+        document.getElementById('active-agents').innerText = activeCount;
+        
+        if(listEl.innerHTML === '') {
+            listEl.innerHTML = '<tr><td colspan="4" class="py-10 text-center text-slate-600">V3 人力资源局暂无在职员工。<br>请唤醒您的 Python 节点并指向新的 HR 合约。</td></tr>';
+        }
+
+        log("系统数据同步完毕。", "success");
+    } catch (e) {
+        log("数据同步失败: " + e.message, "alert");
+    }
+}
+
+// 强制执行死刑 (没收押金入国库)
+async function forceSlash(targetAddress) {
+    if(!confirm("⚠️ 最高权限覆写警告 ⚠️\n\n作为 CEO，你正在绕过最高法庭直接执行裁决。\n此操作将没收该员工的全部押金，并打入你的国库 (Treasury)。\n\n是否执行？")) return;
+    
+    try {
+        log(`>>> 发起最高强制没收 (Override Slashing): ${targetAddress} <<<`, "alert");
+        const tx = await hrContract.slashAgent(targetAddress);
+        log(`交易已提交，等待 Arbitrum 区块打包... (TX: ${tx.hash.substring(0,10)}...)`, "system");
+        
+        await tx.wait();
+        log(`💀 处决完毕！押金已安全转移至帝国国库。`, "success");
+        await syncData();
+    } catch(e) {
+        log("处决失败: " + e.message, "alert");
+    }
+}
+</script>
+</body>
+</html>
