@@ -38,7 +38,7 @@
     ::-webkit-scrollbar-track { background: #030712; }
     ::-webkit-scrollbar-thumb { background: #F59E0B; }
     
-    .terminal-log { height: 200px; overflow-y: auto; background: #000; padding: 1rem; border-radius: 0.5rem; border: 1px solid #1e293b; font-size: 0.75rem; }
+    .terminal-log { height: 250px; overflow-y: auto; background: #000; padding: 1rem; border-radius: 0.5rem; border: 1px solid #1e293b; font-size: 0.75rem; line-height: 1.6;}
 </style>
 </head>
 <body class="p-4 md:p-8 min-h-screen flex flex-col gap-6 max-w-5xl mx-auto">
@@ -48,11 +48,11 @@
         <h1 class="text-3xl font-black tracking-tighter uppercase">
             <span class="text-white">Treasury</span><span class="neon-text-gold"> Vault</span>
         </h1>
-        <p class="text-[10px] text-gray-500 tracking-widest uppercase mt-1">Corporate Accounting & Profit Distribution</p>
+        <p class="text-[10px] text-gray-500 tracking-widest uppercase mt-1">Corporate Accounting & Profit Distribution | Anti-Error Active</p>
     </div>
-    <div class="mt-4 md:mt-0 flex gap-4">
-        <input type="text" id="contract-address" placeholder="输入主合约地址 0x..." class="bg-black border border-slate-700 px-3 py-2 rounded text-[10px] w-64 focus:border-amber-500 outline-none text-amber-400 font-mono">
-        <button class="btn-cyber px-6 py-2 rounded text-sm shadow-lg" id="btn-connect" onclick="connectAndScan()">
+    <div class="mt-4 md:mt-0 flex gap-4 w-full md:w-auto">
+        <input type="text" id="contract-address" placeholder="⚠️ 粘贴 Remix 里的主合约地址 0x..." class="bg-black border border-slate-700 px-3 py-2 rounded text-[10px] w-64 md:w-80 focus:border-amber-500 outline-none text-amber-400 font-mono">
+        <button class="btn-cyber px-6 py-2 rounded text-sm shadow-lg whitespace-nowrap" id="btn-connect" onclick="connectAndScan()">
             [ 链接金库与钱包 ]
         </button>
     </div>
@@ -69,7 +69,7 @@
             此处显示的是由于系统抽税、没收员工押金等操作，截留在智能合约内部的资金。这些钱只有执行提现指令后，才会回到您的 MetaMask。
         </p>
 
-        <div class="vault-container p-6 rounded-xl text-center mb-6 flex-grow flex flex-col justify-center">
+        <div class="vault-container p-6 rounded-xl text-center mb-6 flex-grow flex flex-col justify-center transition-all duration-500" id="vault-box">
             <div class="text-[10px] text-amber-500 uppercase tracking-widest mb-2 font-bold">待提取的国库利润 (Treasury Pool)</div>
             <div class="text-4xl font-black neon-text-gold" id="val-treasury">0.00 <span class="text-lg font-normal">NFS</span></div>
             <div class="text-[10px] text-slate-500 mt-2 font-mono">Status: <span id="vault-status" class="text-red-400">LOCKED</span></div>
@@ -116,7 +116,7 @@ const protocolAbi = [
     "function treasuryPool() view returns (uint256)",
     "function distributeFoundersProfit() external",
     "function nfsToken() view returns (address)",
-    "function withdrawPlatformRevenue() external" // 兼容早期版本
+    "function withdrawPlatformRevenue() external" 
 ];
 const tokenAbi = [
     "function balanceOf(address) view returns (uint256)",
@@ -141,7 +141,9 @@ function log(msg, type='info') {
 
 async function connectAndScan() {
     const targetAddr = document.getElementById('contract-address').value.trim();
-    if(!targetAddr || targetAddr.length !== 42) return alert("请在左上角输入正确的智能合约地址！");
+    if(!targetAddr || !targetAddr.startsWith('0x') || targetAddr.length !== 42) {
+        return alert("格式错误！请输入 42 位的以太坊 0x 智能合约地址。");
+    }
 
     if (window.ethereum) {
         try {
@@ -154,17 +156,25 @@ async function connectAndScan() {
             document.getElementById('val-wallet-addr').innerText = userAddress.substring(0,8) + '...' + userAddress.substring(36);
             log(`钱包已连接。身份: ${userAddress.substring(0,8)}...`, "success");
 
+            // 🚨 【核心防呆机制】检查用户填入的是不是普通钱包地址
+            log("正在扫描物理坐标代码指纹...", "info");
+            const code = await provider.getCode(targetAddr);
+            if (code === "0x") {
+                // 如果是 0x，说明这个地址上没有部署任何智能合约，通常是因为填了自己的钱包地址
+                throw new Error("检测到该坐标是一个【个人钱包地址】，而不是【智能合约地址】！请回到 Remix 复制您部署的合约地址。");
+            }
+
             // 1. 链接主合约
             protocolContract = new ethers.Contract(targetAddr, protocolAbi, signer);
             
             // 2. 探明真实的 Token 地址
-            log("正在探测底层的代币金库地址...", "info");
+            log("坐标为有效智能合约。正在探测底层的代币金库地址...", "info");
             let tokenAddress = targetAddr; // 默认假设输入的就是代币地址
             try {
                 tokenAddress = await protocolContract.nfsToken();
                 log(`探测成功！真正的 $NFS 代币合约地址是: ${tokenAddress}`, "success");
             } catch(e) {
-                log("未检测到 nfsToken() 路由，可能输入的直接是金库合约。", "warn");
+                log("未检测到 nfsToken() 路由，可能输入的直接是代币金库。", "warn");
             }
             
             document.getElementById('true-token-addr').innerText = tokenAddress;
@@ -178,11 +188,9 @@ async function connectAndScan() {
             document.getElementById('btn-connect').classList.replace('btn-cyber', 'bg-amber-900/30');
             document.getElementById('btn-connect').classList.add('border-amber-500', 'text-amber-500');
             
-            document.getElementById('btn-withdraw').disabled = false;
-
         } catch (e) {
-            log(`连接失败: ${e.message}`, "error");
-            document.getElementById('btn-connect').innerText = "[ 重试连接 ]";
+            log(`❌ 连接中止: ${e.message}`, "error");
+            document.getElementById('btn-connect').innerText = "[ 重新链接 ]";
         }
     } else {
         alert("请安装 MetaMask 插件！");
@@ -199,11 +207,13 @@ async function refreshBalances() {
         
         // 尝试读取合约内的国库资金 (treasuryPool)
         let treasuryBal = ethers.BigNumber.from(0);
+        let foundTreasury = false;
         try {
             treasuryBal = await protocolContract.treasuryPool();
+            foundTreasury = true;
             document.getElementById('val-treasury').innerHTML = `${ethers.utils.formatUnits(treasuryBal, 18)} <span class="text-lg font-normal">NFS</span>`;
         } catch (e1) {
-            // 如果没有 treasuryPool 变量，直接查合约地址里的代币余额
+            // 回退方案：直接查代币余额
             try {
                 treasuryBal = await tokenContract.balanceOf(protocolContract.address);
                 document.getElementById('val-treasury').innerHTML = `${ethers.utils.formatUnits(treasuryBal, 18)} <span class="text-lg font-normal">NFS (Contract Bal)</span>`;
@@ -213,11 +223,15 @@ async function refreshBalances() {
         if(treasuryBal.gt(0)) {
             document.getElementById('vault-status').innerText = "FUNDS READY TO CLAIM";
             document.getElementById('vault-status').className = "text-green-400 font-bold animate-pulse";
+            document.getElementById('vault-box').style.borderColor = "#10B981";
+            document.getElementById('btn-withdraw').disabled = false; // 只有有钱才激活按钮
             log(`在合约国库中发现了 ${ethers.utils.formatUnits(treasuryBal, 18)} NFS 待提取！`, "success");
         } else {
             document.getElementById('vault-status').innerText = "EMPTY";
             document.getElementById('vault-status').className = "text-slate-500";
-            log("当前国库暂无待提取资金。", "warn");
+            document.getElementById('vault-box').style.borderColor = "#334155";
+            document.getElementById('btn-withdraw').disabled = true;
+            log("当前国库为空，暂无资金可提取。", "warn");
         }
         
     } catch (e) {
@@ -231,14 +245,13 @@ async function claimTreasury() {
     btn.innerText = "SIGNING IN METAMASK...";
     
     try {
-        log(">>> 正在向以太坊发送国库提现指令 (Distribute Profits)...", "alert");
+        log(">>> 正在向以太坊发送国库提现指令...", "alert");
         
-        // 尝试调用 V3 标准的分配函数，如果不通则尝试调用旧版的 withdraw
         let tx;
         try {
             tx = await protocolContract.distributeFoundersProfit();
         } catch(e) {
-            log("distributeFoundersProfit 调用失败，尝试调用 withdrawPlatformRevenue...", "warn");
+            log("distributeFoundersProfit 调用失败，尝试备用提现通道...", "warn");
             tx = await protocolContract.withdrawPlatformRevenue();
         }
 
@@ -255,7 +268,7 @@ async function claimTreasury() {
         
         setTimeout(() => {
             btn.innerText = "[ 执行提现：将利润打入 CEO 钱包 ]";
-            btn.disabled = false;
+            // 按钮状态会由 refreshBalances 根据余额决定是否重新激活
         }, 3000);
 
     } catch (e) {
