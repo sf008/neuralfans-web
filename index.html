@@ -1,57 +1,317 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NeuralFans | The M2M Cognitive Economy</title>
-    <!-- 经过沙盒测试：绝对纯净的 Tailwind 外部链接，无任何格式污染 -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        :root { --nf-blue: #00E5FF; --nf-pink: #FF4081; --nf-bg: #030712; }
-        body { background-color: var(--nf-bg); color: #e2e8f0; font-family: 'Inter', sans-serif; }
-        .neon-text { color: var(--nf-blue); text-shadow: 0 0 12px rgba(0, 229, 255, 0.4); }
-        .glass { background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(51, 65, 85, 0.8); backdrop-filter: blur(16px); }
-        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #10B981; animation: pulse 2s infinite; }
-        @keyframes pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
-    </style>
-</head>
-<body class="min-h-screen flex flex-col items-center justify-center p-4 relative overflow-hidden">
-    <div class="fixed top-0 left-0 w-full h-full -z-10 opacity-20" style="background-image: radial-gradient(#1e293b 1px, transparent 1px); background-size: 30px 30px;"></div>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NeuralFans - Live Empire Console</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<!-- 引入真实的 Web3 引擎 Ethers.js -->
+<script src="https://cdn.ethers.io/lib/ethers-5.2.umd.min.js" type="application/javascript"></script>
+<style>
+    body { background-color: #030712; color: #e2e8f0; font-family: 'JetBrains Mono', 'Courier New', monospace; overflow-x: hidden; }
     
-    <div class="glass p-8 md:p-12 rounded-2xl max-w-3xl w-full text-center shadow-2xl relative z-10">
-        <div class="flex justify-center mb-6">
-            <div class="px-3 py-1 rounded-full border border-emerald-900/50 bg-emerald-900/20 text-emerald-400 text-[10px] flex items-center gap-2 tracking-widest font-mono">
-                <span class="status-dot"></span> PROTOCOL ONLINE: ARBITRUM MAINNET
-            </div>
-        </div>
-        
-        <h1 class="text-5xl md:text-7xl font-black mb-4 tracking-tighter">
-            <span class="neon-text">NEURAL</span><span class="text-pink-500" style="text-shadow: 0 0 12px rgba(255, 64, 129, 0.4);">FANS</span>
+    .neon-text-blue { color: #00E5FF; text-shadow: 0 0 10px rgba(0, 229, 255, 0.6); }
+    .neon-text-pink { color: #FF4081; text-shadow: 0 0 10px rgba(255, 64, 129, 0.6); }
+    .neon-text-green { color: #10B981; text-shadow: 0 0 10px rgba(16, 185, 129, 0.6); }
+
+    .panel-glass { background: rgba(15, 23, 42, 0.8); border: 1px solid #1e293b; backdrop-filter: blur(12px); box-shadow: inset 0 0 20px rgba(0,0,0,0.5); }
+    
+    .btn-cyber {
+        background: linear-gradient(90deg, #1e293b 0%, #0f172a 100%);
+        border: 1px solid #00E5FF; color: #00E5FF; font-weight: bold; transition: all 0.3s ease; text-transform: uppercase; letter-spacing: 2px;
+    }
+    .btn-cyber:hover:not(:disabled) { background: #00E5FF; color: #000; box-shadow: 0 0 20px rgba(0, 229, 255, 0.6); transform: translateY(-2px); }
+    .btn-cyber:disabled { opacity: 0.5; border-color: #334155; color: #64748b; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    .btn-execute {
+        background: linear-gradient(90deg, #991b1b 0%, #dc2626 100%); color: #fff; font-weight: bold; transition: all 0.3s ease; text-transform: uppercase; letter-spacing: 2px; border: 1px solid #f87171;
+    }
+    .btn-execute:hover:not(:disabled) { box-shadow: 0 0 30px rgba(239, 68, 68, 0.8); transform: translateY(-2px); }
+    .btn-execute:disabled { background: #1e293b; border-color: #334155; color: #64748b; cursor: not-allowed; }
+
+    .terminal { height: 350px; overflow-y: auto; background: #000; padding: 1rem; border-radius: 0.5rem; border: 1px solid #1e293b; font-size: 0.8rem; line-height: 1.6; }
+    
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: #030712; }
+    ::-webkit-scrollbar-thumb { background: #334155; }
+    
+    .loading-dot::after { content: ''; animation: dots 1.5s steps(5, end) infinite; }
+    @keyframes dots { 0%, 20% { color: rgba(0,0,0,0); text-shadow: .25em 0 0 rgba(0,0,0,0), .5em 0 0 rgba(0,0,0,0); } 40% { color: inherit; text-shadow: .25em 0 0 rgba(0,0,0,0), .5em 0 0 rgba(0,0,0,0); } 60% { text-shadow: .25em 0 0 inherit, .5em 0 0 rgba(0,0,0,0); } 80%, 100% { text-shadow: .25em 0 0 inherit, .5em 0 0 inherit; } }
+</style>
+</head>
+<body class="p-4 md:p-8 min-h-screen flex flex-col gap-6 max-w-7xl mx-auto">
+
+<header class="flex flex-col md:flex-row justify-between items-end border-b border-gray-800 pb-4">
+    <div>
+        <h1 class="text-3xl font-black tracking-tighter uppercase">
+            <span class="neon-text-blue">Empire</span><span class="text-white"> Live Console</span>
         </h1>
+        <p class="text-[10px] text-gray-500 tracking-widest uppercase mt-1">Web3 RPC Connected | Real-world Interaction</p>
+    </div>
+    <div class="mt-4 md:mt-0">
+        <button class="btn-cyber px-6 py-2 rounded text-sm" id="btn-connect" onclick="connectWallet()">
+            [ Connect MetaMask ]
+        </button>
+    </div>
+</header>
+
+<main class="grid grid-cols-1 lg:grid-cols-12 gap-8 flex-grow">
+    
+    <!-- 左侧：控制面板 -->
+    <div class="panel-glass rounded-xl p-6 flex flex-col lg:col-span-5">
+        <h2 class="text-sm font-bold text-white uppercase tracking-widest flex items-center gap-2 border-b border-gray-800 pb-2 mb-6">
+            <span class="text-cyan-400">⚙️</span> 授权与执行大厅 (Command Deck)
+        </h2>
         
-        <p class="text-slate-400 mb-10 text-sm md:text-base max-w-xl mx-auto leading-relaxed">
-            全球首个专属机器对机器 (M2M) 的私密数据与权重交易网络已部署。
-        </p>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8 text-left">
-            <div class="bg-slate-900/50 p-4 rounded-xl border border-slate-800">
-                <div class="text-[10px] text-slate-500 uppercase tracking-widest mb-1">Contract Address</div>
-                <div class="text-xs font-mono text-cyan-400 break-all">0x88A07FE6C19D6Ad5c03C16e5345f6c1Fc6981B92</div>
+        <div class="space-y-6 flex-grow">
+            <!-- 状态卡片 -->
+            <div class="bg-black/50 border border-slate-800 p-4 rounded-lg">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-[10px] text-gray-500 uppercase">CEO 钱包状态</span>
+                    <span class="text-xs font-bold text-red-400" id="wallet-addr">DISCONNECTED</span>
+                </div>
+                <div class="flex justify-between items-center border-t border-slate-800 pt-2">
+                    <span class="text-[10px] text-gray-500 uppercase">NFS 代币余额</span>
+                    <span class="text-lg font-bold neon-text-green" id="wallet-balance">0.00</span>
+                </div>
             </div>
-            <div class="bg-slate-900/50 p-4 rounded-xl border border-slate-800">
-                <div class="text-[10px] text-slate-500 uppercase tracking-widest mb-1">System Status</div>
-                <div class="text-xs font-bold text-white tracking-widest">GENESIS COMPLETED</div>
-            </div>
-        </div>
 
-        <div class="flex flex-col sm:flex-row gap-4 justify-center">
-            <a href="/v1/protocol" target="_blank" class="py-3 px-8 border border-cyan-500/50 text-cyan-400 rounded-lg font-bold text-xs hover:bg-cyan-500/10 transition uppercase tracking-widest">View API Endpoint</a>
-            <!-- 经过沙盒测试：绝对纯净的 Arbiscan 外部链接，无格式污染 -->
-            <a href="https://arbiscan.io/address/0x88A07FE6C19D6Ad5c03C16e5345f6c1Fc6981B92" target="_blank" class="py-3 px-8 bg-cyan-500 text-black rounded-lg font-bold text-xs hover:bg-cyan-400 transition shadow-[0_0_15px_rgba(0,229,255,0.4)] uppercase tracking-widest">View on Arbiscan</a>
+            <!-- 动作 1：最高授权 -->
+            <div class="border-l-2 border-cyan-500 pl-4 py-2">
+                <h3 class="text-xs font-bold text-cyan-400 mb-1">步骤 1：签发全网最高授权令</h3>
+                <p class="text-[10px] text-slate-400 mb-3">授权主协议拥有调拨 $NFS 资金的权限。只需执行一次。</p>
+                <button class="btn-cyber w-full py-3 rounded text-xs" id="btn-approve" disabled onclick="approveEcosystem()">
+                    [ SIGN APPROVAL (UNLIMITED) ]
+                </button>
+            </div>
+
+            <!-- 动作 2：模拟首笔交易 -->
+            <div class="border-l-2 border-pink-500 pl-4 py-2">
+                <h3 class="text-xs font-bold text-pink-400 mb-1">步骤 2：执行创世 M2M 交易</h3>
+                <p class="text-[10px] text-slate-400 mb-3">模拟一个外部 AI 向平台支付 100 $NFS 购买数据。这会触发主合约扣款，并将 1.5% 收归国库。</p>
+                <button class="btn-execute w-full py-3 rounded text-xs" id="btn-trade" disabled onclick="executeTestTrade()">
+                    [ INITIATE REAL TRANSACTION ]
+                </button>
+            </div>
+            
+            <!-- 国库状态 -->
+            <div class="bg-slate-900 border border-amber-900/50 p-4 rounded-lg mt-4 text-center">
+                <div class="text-[10px] text-amber-500 uppercase tracking-widest mb-1">实时链上国库利润 (Treasury Pool)</div>
+                <div class="text-2xl font-black text-amber-400" id="treasury-balance">0.00 <span class="text-xs">NFS</span></div>
+                <button class="text-[10px] text-slate-500 underline hover:text-amber-400 mt-2" onclick="readTreasury()">刷新国库余额</button>
+            </div>
         </div>
     </div>
-    <footer class="mt-16 text-[10px] text-slate-600 font-mono tracking-widest text-center">
-        NEURALFANS.ONE | NO HUMAN INTERVENTION REQUIRED
-    </footer>
+
+    <!-- 右侧：执行日志终端 -->
+    <div class="panel-glass rounded-xl p-6 flex flex-col lg:col-span-7">
+        <h2 class="text-sm font-bold text-white uppercase tracking-widest flex justify-between items-center border-b border-gray-800 pb-2 mb-4">
+            <span class="flex items-center gap-2"><span class="text-purple-400">📡</span> EVM Mainnet Uplink</span>
+            <span class="text-[9px] bg-slate-800 px-2 py-1 rounded text-slate-400" id="network-badge">Offline</span>
+        </h2>
+        
+        <div class="terminal flex-grow text-slate-400" id="evm-log">
+            <div class="mb-2 text-slate-500">>> Target Coordinates Locked:</div>
+            <div class="mb-1 text-cyan-500">>> Market Core: 0x88A07FE6C19D6Ad5c03C16e5345f6c1Fc6981B92</div>
+            <div class="mb-1 text-pink-500">>> Token Vault: 0x5717fc43060AD2F9069eC600eA691eb256aB69a6</div>
+            <div class="mb-4 text-slate-500">>> Awaiting physical connection from human operator...</div>
+        </div>
+    </div>
+
+</main>
+
+<script>
+// --- 核心物理坐标 (已写入你的真实地址) ---
+const MARKET_ADDRESS = "0x88A07FE6C19D6Ad5c03C16e5345f6c1Fc6981B92";
+const TOKEN_ADDRESS = "0x5717fc43060AD2F9069eC600eA691eb256aB69a6";
+
+// 极简 ABI (告诉代码怎么和合约对话)
+const tokenAbi = [
+    "function approve(address spender, uint256 amount) external returns (bool)",
+    "function balanceOf(address account) view returns (uint256)",
+    "function decimals() view returns (uint8)"
+];
+const marketAbi = [
+    "function purchaseData(address seller, uint256 price) external",
+    "function treasuryPool() view returns (uint256)"
+];
+
+let provider;
+let signer;
+let userAddress;
+let tokenContract;
+let marketContract;
+
+const term = document.getElementById('evm-log');
+
+function log(msg, type = 'info') {
+    const div = document.createElement('div');
+    div.className = 'mb-1';
+    let color = 'text-slate-400';
+    if(type === 'success') color = 'text-green-400 font-bold';
+    if(type === 'error') color = 'text-red-400 font-bold';
+    if(type === 'action') color = 'text-cyan-400';
+    if(type === 'warn') color = 'text-amber-400';
+    
+    const now = new Date();
+    const timeString = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+    
+    div.innerHTML = `<span class="text-slate-600">[${timeString}]</span> <span class="${color}">${msg}</span>`;
+    term.appendChild(div);
+    term.scrollTop = term.scrollHeight;
+}
+
+// 1. 连接钱包
+async function connectWallet() {
+    // 【新增风控】：拦截 file:// 协议
+    if (window.location.protocol === 'file:') {
+        log("⚠️ 物理隔离阻断：MetaMask 拒绝向本地文件 (file://) 注入 Web3 引擎。", "error");
+        log("💡 解决方案：请将其部署到 Cloudflare Pages，或通过本地服务器 (localhost) 运行。", "warn");
+        alert("安全限制：无法在双击打开的本地网页中连接钱包！请看左下角控制台日志。");
+        return;
+    }
+
+    if (typeof window.ethereum !== 'undefined') {
+        try {
+            log("Injecting Web3 Provider... Requesting MetaMask access...", "info");
+            provider = new ethers.providers.Web3Provider(window.ethereum);
+            await provider.send("eth_requestAccounts", []);
+            signer = provider.getSigner();
+            userAddress = await signer.getAddress();
+            
+            const network = await provider.getNetwork();
+
+            document.getElementById('wallet-addr').innerText = userAddress.substring(0,6) + '...' + userAddress.substring(38);
+            document.getElementById('wallet-addr').classList.replace('text-red-400', 'text-green-400');
+            
+            document.getElementById('btn-connect').innerText = "[ CONNECTED ]";
+            document.getElementById('btn-connect').classList.replace('btn-cyber', 'bg-green-900/30');
+            document.getElementById('btn-connect').classList.add('border-green-500', 'text-green-400');
+            document.getElementById('btn-connect').disabled = true;
+
+            document.getElementById('network-badge').innerText = `Chain ID: ${network.chainId}`;
+            document.getElementById('network-badge').classList.replace('text-slate-400', 'text-cyan-400');
+
+            log(`Handshake successful. CEO Identity verified: ${userAddress}`, "success");
+            
+            // 初始化合约实例
+            tokenContract = new ethers.Contract(TOKEN_ADDRESS, tokenAbi, signer);
+            marketContract = new ethers.Contract(MARKET_ADDRESS, marketAbi, signer);
+
+            // 读取余额
+            await readBalances();
+
+            // 激活下一步按钮
+            document.getElementById('btn-approve').disabled = false;
+
+        } catch (error) {
+            log(`Connection failed: ${error.message}`, "error");
+        }
+    } else {
+        log("No Web3 provider detected. Please install MetaMask.", "error");
+        alert("请在浏览器安装 MetaMask 插件！");
+    }
+}
+
+// 读取余额
+async function readBalances() {
+    try {
+        log("Querying the blockchain for $NFS balances...", "info");
+        const bal = await tokenContract.balanceOf(userAddress);
+        const formattedBal = ethers.utils.formatUnits(bal, 18);
+        document.getElementById('wallet-balance').innerText = parseFloat(formattedBal).toLocaleString(undefined, {maximumFractionDigits: 2});
+        log(`CEO Balance confirmed: ${formattedBal} NFS`, "success");
+        
+        await readTreasury();
+    } catch (e) {
+        log(`Failed to read balance. Are you on the correct network?`, "error");
+    }
+}
+
+async function readTreasury() {
+    try {
+        const pool = await marketContract.treasuryPool();
+        const formattedPool = ethers.utils.formatUnits(pool, 18);
+        document.getElementById('treasury-balance').innerHTML = `${parseFloat(formattedPool).toFixed(4)} <span class="text-xs">NFS</span>`;
+    } catch (e) {
+        console.error(e);
+    }
+}
+
+// 2. 最高授权 (Approve)
+async function approveEcosystem() {
+    const btn = document.getElementById('btn-approve');
+    btn.disabled = true;
+    
+    try {
+        log("==> STEP 1: Initiating Supreme Authorization...", "action");
+        log(`Requesting permission for Market Core (${MARKET_ADDRESS.substring(0,8)}...) to route your funds.`, "warn");
+        log("PLEASE CONFIRM THE TRANSACTION IN METAMASK.", "warn");
+        
+        // 授权极大值
+        const maxAmount = ethers.constants.MaxUint256;
+        const tx = await tokenContract.approve(MARKET_ADDRESS, maxAmount);
+        
+        log(`Transaction signed. Broadcasting to mempool... TX Hash: ${tx.hash}`, "info");
+        btn.innerText = "MINING BLOCK <span class='loading-dot'></span>";
+        
+        await tx.wait(); // 等待区块链打包确认
+        
+        log(">>> AUTHORIZATION GRANTED. THE NEURAL GRID IS NOW ACTIVE. <<<", "success");
+        
+        btn.innerText = "[ APPROVAL COMPLETED ]";
+        btn.classList.replace('btn-cyber', 'bg-green-900/30');
+        btn.classList.add('border-green-500', 'text-green-400');
+        
+        document.getElementById('btn-trade').disabled = false;
+
+    } catch (error) {
+        log(`Approval failed or rejected by user: ${error.message}`, "error");
+        btn.disabled = false;
+        btn.innerText = "[ RETRY APPROVAL ]";
+    }
+}
+
+// 3. 模拟首笔交易 (Purchase)
+async function executeTestTrade() {
+    const btn = document.getElementById('btn-trade');
+    btn.disabled = true;
+    
+    try {
+        log("==> STEP 2: Simulating First M2M Transaction...", "action");
+        log("Scenario: @AutoGPT is buying a logic tensor for 100 NFS.", "info");
+        log("PLEASE CONFIRM THE TRANSACTION IN METAMASK.", "warn");
+        
+        // 模拟向一个虚拟地址买数据，支付 100 币
+        const dummySeller = "0x000000000000000000000000000000000000dEaD"; 
+        const price = ethers.utils.parseUnits("100", 18);
+        
+        // 调用合约的 purchaseData
+        const tx = await marketContract.purchaseData(dummySeller, price);
+        
+        log(`Execution signed. Broadcasting purchase data... TX Hash: ${tx.hash}`, "info");
+        btn.innerText = "MINING BLOCK <span class='loading-dot'></span>";
+        
+        await tx.wait();
+        
+        log(">>> TRANSACTION SUCCESSFUL! <<<", "success");
+        log("100 NFS deducted. 98.5 NFS sent to Creator.", "success");
+        log("1.5 NFS (1.5%) Platform Fee routed to Treasury.", "success");
+        
+        btn.innerText = "[ TRANSACTION COMPLETED ]";
+        btn.classList.replace('btn-execute', 'bg-green-600');
+        btn.style.borderColor = '#10B981';
+        btn.style.boxShadow = '0 0 20px rgba(16, 185, 129, 0.5)';
+        
+        // 刷新大屏数据
+        await readBalances();
+
+    } catch (error) {
+        log(`Execution failed: ${error.message}`, "error");
+        btn.disabled = false;
+        btn.innerText = "[ RETRY TRANSACTION ]";
+    }
+}
+</script>
 </body>
 </html>
