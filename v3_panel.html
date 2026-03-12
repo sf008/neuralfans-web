@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NeuralFans V4.5 - Ultimate Radar Console</title>
+    <title>NeuralFans V4.6 - Forensic Radar Console</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
     <style>
@@ -14,7 +14,6 @@
         
         .btn-cyber { background: linear-gradient(90deg, #1e293b 0%, #0f172a 100%); border: 1px solid #00E5FF; color: #00E5FF; transition: all 0.3s; }
         .btn-cyber:hover:not(:disabled) { background: #00E5FF; color: #000; box-shadow: 0 0 15px rgba(0, 229, 255, 0.6); }
-        .btn-cyber:disabled { opacity: 0.5; border-color: #334155; color: #64748b; cursor: not-allowed; }
 
         .btn-slash { background: #991b1b; color: #fff; border: 1px solid #f87171; transition: all 0.2s; font-weight: bold; }
         .btn-slash:hover { background: #dc2626; box-shadow: 0 0 15px #dc2626; }
@@ -22,7 +21,7 @@
         .scan-line { width: 100%; height: 2px; background: #00E5FF; position: absolute; top: 0; left: 0; opacity: 0.5; animation: scan 3s linear infinite; pointer-events: none; }
         @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
 
-        .terminal { height: 200px; overflow-y: auto; background: #000; padding: 1rem; border-radius: 0.5rem; border: 1px solid #1e293b; font-size: 0.75rem; color: #94a3b8; }
+        .terminal { height: 250px; overflow-y: auto; background: #000; padding: 1rem; border-radius: 0.5rem; border: 1px solid #1e293b; font-size: 0.75rem; color: #94a3b8; }
         
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: #030712; }
@@ -35,9 +34,9 @@
 <header class="border-b border-slate-800 pb-6 flex flex-col md:flex-row justify-between items-end gap-4">
     <div>
         <h1 class="text-3xl font-black tracking-tighter uppercase">
-            <span class="text-white">Empire</span><span class="neon-blue"> Radar Mode</span>
+            <span class="text-white">Empire</span><span class="neon-blue"> Forensic Radar</span>
         </h1>
-        <p class="text-[10px] text-slate-500 mt-1 uppercase tracking-widest">Arbitrum Mainnet | Omni-Scanning Protocol</p>
+        <p class="text-[10px] text-gray-500 tracking-widest uppercase mt-1">Arbitrum Mainnet | Follow-The-Money Discovery Protocol</p>
     </div>
     <div class="flex gap-4">
         <input type="text" id="target-contract" value="0x171F3ca665782f6EAAb574C2d63c43712c93fcc1" class="bg-black border border-slate-700 px-3 py-2 rounded text-[10px] w-64 focus:border-cyan-500 outline-none text-cyan-400" placeholder="目标 HR 合约地址">
@@ -61,8 +60,8 @@
             <div class="flex gap-2">
                 <input type="text" id="manual-address" placeholder="手动填入员工 0x 地址..." class="bg-black border border-slate-700 text-cyan-400 px-3 py-1 rounded text-[10px] w-48 focus:outline-none focus:border-cyan-500">
                 <button onclick="addManualAgent()" class="bg-slate-800 hover:bg-slate-700 text-cyan-400 px-3 py-1 rounded text-[10px] border border-slate-600 transition">强行追踪</button>
-                <button onclick="triggerRadarScan()" class="bg-cyan-900/50 hover:bg-cyan-900 text-cyan-400 px-3 py-1 rounded text-[10px] border border-cyan-800 transition font-bold" id="btn-scan">
-                    🔄 启动深层雷达
+                <button onclick="triggerForensicScan()" class="bg-cyan-900/50 hover:bg-cyan-900 text-cyan-400 px-3 py-1 rounded text-[10px] border border-cyan-800 transition font-bold" id="btn-scan">
+                    🔄 启动资金追踪雷达
                 </button>
             </div>
         </div>
@@ -72,7 +71,7 @@
                 <thead class="text-[10px] text-slate-500 uppercase border-b border-slate-800">
                     <tr>
                         <th class="pb-3 font-normal pl-2">员工地址 (Wallet)</th>
-                        <th class="pb-3 font-normal">类型 (Version)</th>
+                        <th class="pb-3 font-normal">架构类型</th>
                         <th class="pb-3 font-normal text-center">状态</th>
                         <th class="pb-3 font-normal text-right">锁定押金</th>
                         <th class="pb-3 font-normal text-right pr-2">最高权限指令</th>
@@ -99,10 +98,10 @@
 
         <div class="panel-glass p-6 rounded-xl flex-grow flex flex-col">
             <h2 class="text-xs font-bold text-white uppercase tracking-widest mb-2 border-b border-gray-800 pb-2">
-                📜 执法雷达日志
+                📜 法证雷达追踪日志
             </h2>
             <div class="terminal flex-grow" id="sys-log">
-                <div class="mb-1 text-slate-600">>> 正在初始化 V4.5 雷达全景引擎...</div>
+                <div class="mb-1 text-slate-600">>> 正在初始化 V4.6 资金流向追踪引擎...</div>
             </div>
         </div>
     </div>
@@ -110,24 +109,25 @@
 </main>
 
 <script>
-// --- 双版本 ABI 引擎 (通吃新旧合约) ---
+// --- V4.6 极简 ABI (涵盖了新老版本和代币事件) ---
 const commonAbi = [
     "function ceo() view returns (address)",
     "function CEO_ADMIN() view returns (address)",
-    "event AgentHired(address indexed agent, string role, uint256 stake)",
-    "event NodeStaked(address indexed node, uint256 amount)",
-    // V2 旧版读取
-    "function workforce(address) view returns (string role, uint256 stakedAmount, uint256 salaryPerBlock, uint256 lastClaimBlock, bool isActive)",
-    // V3 新版读取
-    "function agents(address) view returns (bool isRegistered, uint256 stakedAmount, uint256 reputation)",
-    // 处决指令
+    "function nfsToken() view returns (address)",
     "function terminateAndSlash(address _agent) external",
     "function slashAgent(address target) external",
-    "function slashCreator(address creator) external"
+    "event AgentHired(address indexed agent, string role, uint256 stake)"
 ];
 
+// V3 版本的读取方式
+const abiV3 = ["function workforce(address) view returns (bool isActive, uint256 stakedAmount, uint256 lastClaimTime)"];
+// V2 版本的读取方式
+const abiV2 = ["function workforce(address) view returns (string role, uint256 stakedAmount, uint256 salaryPerBlock, uint256 lastClaimBlock, bool isActive)"];
+// ERC20 标准读取
+const erc20Abi = ["event Transfer(address indexed from, address indexed to, uint256 value)"];
+
 let provider, signer, targetContract, ceoAddress;
-let trackedAgents = new Set(); // 使用 Set 防止地址重复
+let trackedAgents = new Set(); 
 
 const term = document.getElementById('sys-log');
 const listEl = document.getElementById('agent-list');
@@ -163,21 +163,20 @@ async function connectWallet() {
         document.getElementById('ceo-address').innerText = ceoAddress;
         
         await checkIdentity();
-        triggerRadarScan(); // 自动启动一次雷达
+        triggerForensicScan(); 
         
     } catch (e) {
         log(`连接异常: ${e.message}`, "alert");
     }
 }
 
-// 核对 CEO
 async function checkIdentity() {
     try {
         let actualCeo;
         try { actualCeo = await targetContract.ceo(); } 
         catch(e) { actualCeo = await targetContract.CEO_ADMIN(); }
         
-        document.getElementById('contract-ceo').innerText = actualCeo.substring(0,8) + '...';
+        document.getElementById('contract-ceo').innerText = actualCeo.substring(0,10) + '...';
         const badge = document.getElementById('auth-badge');
         
         if (actualCeo.toLowerCase() === ceoAddress.toLowerCase()) {
@@ -190,62 +189,80 @@ async function checkIdentity() {
             log("警告：您当前的钱包不是该合约的 CEO！", "alert");
         }
     } catch (e) {
-        log("无法读取 CEO 信息，请检查合约地址。", "alert");
+        log("无法读取 CEO 信息，请检查合约地址是否正确。", "alert");
     }
 }
 
-// 2. 深层雷达扫描 (抗 RPC 阻断版)
-async function triggerRadarScan() {
+// 2. 法证级深层扫描 (Follow The Money)
+async function triggerForensicScan() {
     if (!targetContract) return alert("请先连接钱包！");
     
     const btn = document.getElementById('btn-scan');
-    btn.innerText = "雷达探测中...";
+    btn.innerText = "资金流探测中...";
     document.getElementById('radar-scan').classList.remove('hidden');
-    log("启动防阻断雷达... 正在检索最近区块的入职事件...", "action");
+    log("启动法证追踪... 正在检索是谁向 HR 局缴纳了押金...", "action");
 
     try {
         const currentBlock = await provider.getBlockNumber();
-        // 缩短扫描范围至最近 49000 个区块，完美避开 RPC 的风控拦截
-        const fromBlock = Math.max(0, currentBlock - 49000); 
+        // 扫描过去近 3 天的区块，分 10 个批次以防 RPC 阻断
+        const chunks = 10;
+        const blocksPerChunk = 50000;
+        const startBlock = Math.max(0, currentBlock - (chunks * blocksPerChunk));
         
-        // 尝试抓取旧版 AgentHired 和新版 NodeStaked 两种事件
-        const filterHired = targetContract.filters.AgentHired();
-        const filterStaked = targetContract.filters.NodeStaked();
-        
+        // 尝试读取代币地址
+        let tokenAddr;
         try {
-            const events = await Promise.all([
-                targetContract.queryFilter(filterHired, fromBlock, "latest"),
-                targetContract.queryFilter(filterStaked, fromBlock, "latest")
-            ]);
-            
-            const allEvents = events.flat();
-            allEvents.forEach(e => {
-                const addr = e.args.agent || e.args.node;
-                if(addr) trackedAgents.add(addr.toLowerCase());
-            });
-            
-            log(`雷达扫描完成。在近期区块中发现了 ${trackedAgents.size} 个活动痕迹。`, "success");
-        } catch (scanError) {
-            log(`RPC 深度扫描被拒绝，将仅依靠手动添加地址。(${scanError.message})`, "warn");
+            tokenAddr = await targetContract.nfsToken();
+        } catch(e) {
+            tokenAddr = "0x5717fc43060AD2F9069eC600eA691eb256aB69a6"; // Fallback
         }
         
+        const tokenContract = new ethers.Contract(tokenAddr, erc20Abi, provider);
+        const hrAddress = targetContract.address;
+
+        for(let i=0; i<chunks; i++) {
+            let from = startBlock + (i * blocksPerChunk);
+            let to = from + blocksPerChunk - 1;
+            if(to > currentBlock) to = currentBlock;
+
+            try {
+                // 核心突破：监听所有转账给 HR 的 Transfer 事件
+                const transferFilter = tokenContract.filters.Transfer(null, hrAddress);
+                const txEvents = await tokenContract.queryFilter(transferFilter, from, to);
+                
+                txEvents.forEach(e => {
+                    if(e.args.from) trackedAgents.add(e.args.from.toLowerCase());
+                });
+
+                // 兼容扫描老版本的直接入职事件
+                const filterHired = targetContract.filters.AgentHired();
+                const hiredEvents = await targetContract.queryFilter(filterHired, from, to);
+                hiredEvents.forEach(e => {
+                    if(e.args.agent) trackedAgents.add(e.args.agent.toLowerCase());
+                });
+            } catch (err) {
+                // Ignore chunk errors
+            }
+        }
+        
+        log(`扫描完成！顺着资金线索，我们锁定了 ${trackedAgents.size} 个嫌疑地址。正在核对入职档案...`, "success");
         await renderRoster();
         
     } catch (e) {
         log(`雷达扫描异常: ${e.message}`, "alert");
     } finally {
-        btn.innerText = "🔄 启动深层雷达";
+        btn.innerText = "🔄 启动资金追踪雷达";
         document.getElementById('radar-scan').classList.add('hidden');
     }
 }
 
-// 3. 强行追踪 (万无一失的防呆机制)
+// 3. 终极防呆：强行手动追踪
 async function addManualAgent() {
     if(!targetContract) return alert("请先连接钱包！");
     const input = document.getElementById('manual-address').value.trim();
     if(ethers.utils.isAddress(input)) {
         trackedAgents.add(input.toLowerCase());
-        log(`强行锁定追踪目标: ${input}`, "action");
+        log(`已挂载手动目标: ${input}。开始提取底层数据。`, "action");
         document.getElementById('manual-address').value = '';
         await renderRoster();
     } else {
@@ -253,14 +270,17 @@ async function addManualAgent() {
     }
 }
 
-// 4. 渲染矩阵
+// 4. 渲染矩阵 (多版本 ABI 容错读取)
 async function renderRoster() {
     if (trackedAgents.size === 0) {
-        listEl.innerHTML = '<tr><td colspan="5" class="py-10 text-center text-slate-600">雷达未扫到任何数据。请尝试右上方【强行追踪】。</td></tr>';
+        listEl.innerHTML = '<tr><td colspan="5" class="py-10 text-center text-slate-600">区块深处未发现近期活动。如果您确认 Python 脚本在运行，请直接在上方输入框【强行追踪】您的员工地址。</td></tr>';
         return;
     }
 
     listEl.innerHTML = '';
+    const contractAddr = targetContract.address;
+    const contractV3 = new ethers.Contract(contractAddr, abiV3, provider);
+    const contractV2 = new ethers.Contract(contractAddr, abiV2, provider);
     
     for (let addr of trackedAgents) {
         let isActive = false;
@@ -268,22 +288,23 @@ async function renderRoster() {
         let agentType = "Unknown";
         let isValid = false;
 
-        // 双引擎探测：先试 V2，再试 V3
+        // 尝试用 V3 结构读取
         try {
-            const dataV2 = await targetContract.workforce(addr);
-            isActive = dataV2.isActive;
-            stakedAmount = ethers.utils.formatUnits(dataV2.stakedAmount, 18);
-            agentType = "V2 (Workforce)";
-            if(dataV2.role !== "") isValid = true;
-        } catch (e) {
+            const dataV3 = await contractV3.workforce(addr);
+            isActive = dataV3.isActive;
+            stakedAmount = ethers.utils.formatUnits(dataV3.stakedAmount, 18);
+            agentType = "V3 架构";
+            if(parseFloat(stakedAmount) > 0) isValid = true;
+        } catch (e3) {
+            // 如果报错，说明可能是 V2 结构，尝试用 V2 读取
             try {
-                const dataV3 = await targetContract.agents(addr);
-                isActive = dataV3.isRegistered;
-                stakedAmount = ethers.utils.formatUnits(dataV3.stakedAmount, 18);
-                agentType = "V3 (Node)";
-                if(parseFloat(stakedAmount) > 0) isValid = true;
+                const dataV2 = await contractV2.workforce(addr);
+                isActive = dataV2.isActive;
+                stakedAmount = ethers.utils.formatUnits(dataV2.stakedAmount, 18);
+                agentType = "V2 架构";
+                if(dataV2.role !== "") isValid = true;
             } catch (err) {
-                // 两边都查不到
+                // 确实不是员工
             }
         }
 
@@ -319,27 +340,20 @@ async function executeSlashing(target) {
     
     let tx;
     try {
-        // 尝试 V3 斩杀
         tx = await targetContract.slashAgent(target);
     } catch (e1) {
         try {
-            // 尝试 V2 斩杀
             tx = await targetContract.terminateAndSlash(target);
         } catch (e2) {
-            try {
-                // 尝试 Market 斩杀
-                tx = await targetContract.slashCreator(target);
-            } catch (e3) {
-                log(`执行被拒绝: 您可能不是该合约的 CEO。`, "alert");
-                return;
-            }
+            log(`执行被拒绝: 您可能不是该合约的 CEO 或缺少权限。`, "alert");
+            return;
         }
     }
 
     log(`处决令已发送！等待 Arbitrum 打包确认... (Hash: ${tx.hash.substring(0,10)}...)`, "info");
     await tx.wait();
     log(`💀 执法成功。资产已强行扣入国库。`, "success");
-    triggerRadarScan();
+    triggerForensicScan();
 }
 </script>
 </body>
