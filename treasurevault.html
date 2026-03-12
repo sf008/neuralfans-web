@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NeuralFans - Treasury Vault Claim</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
+<style>
+    body { background-color: #030712; color: #e2e8f0; font-family: 'JetBrains Mono', 'Courier New', monospace; overflow-x: hidden; }
+    
+    .neon-text-gold { color: #F59E0B; text-shadow: 0 0 15px rgba(245, 158, 11, 0.6); }
+    .neon-text-green { color: #10B981; text-shadow: 0 0 15px rgba(16, 185, 129, 0.6); }
+    
+    .panel-glass {
+        background: rgba(15, 23, 42, 0.8);
+        border: 1px solid #1e293b;
+        backdrop-filter: blur(12px);
+        box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
+    }
+
+    .btn-cyber {
+        background: linear-gradient(90deg, #F59E0B 0%, #D97706 100%);
+        color: #fff; font-weight: bold; border: 1px solid #FCD34D;
+        transition: all 0.3s ease; text-transform: uppercase; letter-spacing: 2px;
+    }
+    .btn-cyber:hover:not(:disabled) { box-shadow: 0 0 25px rgba(245, 158, 11, 0.6); transform: translateY(-2px); }
+    .btn-cyber:disabled { background: #334155; border-color: #1e293b; color: #94a3b8; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    .vault-container {
+        position: relative;
+        background: repeating-linear-gradient( 45deg, rgba(245, 158, 11, 0.05), rgba(245, 158, 11, 0.05) 10px, transparent 10px, transparent 20px );
+        border: 2px solid #F59E0B;
+        box-shadow: inset 0 0 30px rgba(245, 158, 11, 0.1);
+    }
+
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: #030712; }
+    ::-webkit-scrollbar-thumb { background: #F59E0B; }
+    
+    .terminal-log { height: 200px; overflow-y: auto; background: #000; padding: 1rem; border-radius: 0.5rem; border: 1px solid #1e293b; font-size: 0.75rem; }
+</style>
+</head>
+<body class="p-4 md:p-8 min-h-screen flex flex-col gap-6 max-w-5xl mx-auto">
+
+<header class="flex flex-col md:flex-row justify-between items-end border-b border-gray-800 pb-4">
+    <div>
+        <h1 class="text-3xl font-black tracking-tighter uppercase">
+            <span class="text-white">Treasury</span><span class="neon-text-gold"> Vault</span>
+        </h1>
+        <p class="text-[10px] text-gray-500 tracking-widest uppercase mt-1">Corporate Accounting & Profit Distribution</p>
+    </div>
+    <div class="mt-4 md:mt-0 flex gap-4">
+        <input type="text" id="contract-address" placeholder="输入主合约地址 0x..." class="bg-black border border-slate-700 px-3 py-2 rounded text-[10px] w-64 focus:border-amber-500 outline-none text-amber-400 font-mono">
+        <button class="btn-cyber px-6 py-2 rounded text-sm shadow-lg" id="btn-connect" onclick="connectAndScan()">
+            [ 链接金库与钱包 ]
+        </button>
+    </div>
+</header>
+
+<main class="grid grid-cols-1 lg:grid-cols-2 gap-8 flex-grow">
+    
+    <!-- 左侧：金库资金透视 -->
+    <div class="panel-glass rounded-xl p-6 flex flex-col">
+        <h2 class="text-sm font-bold text-white mb-4 uppercase tracking-widest border-b border-gray-800 pb-2">
+            <span class="text-amber-400">🏦</span> 帝国对公账户 (Smart Contract Vault)
+        </h2>
+        <p class="text-[10px] text-slate-400 mb-6">
+            此处显示的是由于系统抽税、没收员工押金等操作，截留在智能合约内部的资金。这些钱只有执行提现指令后，才会回到您的 MetaMask。
+        </p>
+
+        <div class="vault-container p-6 rounded-xl text-center mb-6 flex-grow flex flex-col justify-center">
+            <div class="text-[10px] text-amber-500 uppercase tracking-widest mb-2 font-bold">待提取的国库利润 (Treasury Pool)</div>
+            <div class="text-4xl font-black neon-text-gold" id="val-treasury">0.00 <span class="text-lg font-normal">NFS</span></div>
+            <div class="text-[10px] text-slate-500 mt-2 font-mono">Status: <span id="vault-status" class="text-red-400">LOCKED</span></div>
+        </div>
+
+        <button class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-4 rounded-lg uppercase tracking-widest transition shadow-[0_0_15px_rgba(16,185,129,0.4)] disabled:opacity-50 disabled:cursor-not-allowed" id="btn-withdraw" disabled onclick="claimTreasury()">
+            [ 执行提现：将利润打入 CEO 钱包 ]
+        </button>
+    </div>
+
+    <!-- 右侧：个人钱包余额与日志 -->
+    <div class="panel-glass rounded-xl p-6 flex flex-col">
+        <h2 class="text-sm font-bold text-white mb-4 uppercase tracking-widest border-b border-gray-800 pb-2">
+            <span class="text-green-400">👤</span> CEO 个人腰包 (MetaMask)
+        </h2>
+        
+        <div class="bg-black/50 border border-slate-800 p-4 rounded-lg mb-6">
+            <div class="flex justify-between items-center mb-2">
+                <span class="text-[10px] text-gray-500 uppercase">当前钱包地址</span>
+                <span class="text-[10px] font-bold text-cyan-400 font-mono" id="val-wallet-addr">未连接</span>
+            </div>
+            <div class="flex justify-between items-center border-t border-slate-800 pt-2">
+                <span class="text-[10px] text-gray-500 uppercase">当前 NFS 余额 (真实流通)</span>
+                <span class="text-xl font-bold neon-text-green" id="val-wallet-bal">0.00</span>
+            </div>
+            <!-- 解决 0 NFS 的关键提示 -->
+            <div class="mt-3 p-2 bg-blue-900/20 border border-blue-500/30 rounded text-[9px] text-blue-300 font-mono">
+                💡 如果上面显示有余额，但 MetaMask 里显示 0，请在 MetaMask 导入真正的代币地址：<br>
+                <span id="true-token-addr" class="font-bold text-white select-all">等待读取...</span>
+            </div>
+        </div>
+
+        <h3 class="text-xs font-bold text-gray-400 mb-2 uppercase tracking-widest">金库操作日志</h3>
+        <div class="terminal-log" id="sys-log">
+            <div class="text-slate-600">>> 初始化金库透视系统... 等待输入合约坐标。</div>
+        </div>
+    </div>
+
+</main>
+
+<script>
+// 极简 ABI：同时兼容读取国库和代币
+const protocolAbi = [
+    "function treasuryPool() view returns (uint256)",
+    "function distributeFoundersProfit() external",
+    "function nfsToken() view returns (address)",
+    "function withdrawPlatformRevenue() external" // 兼容早期版本
+];
+const tokenAbi = [
+    "function balanceOf(address) view returns (uint256)",
+    "function symbol() view returns (string)"
+];
+
+let provider, signer, userAddress, protocolContract, tokenContract;
+const terminal = document.getElementById('sys-log');
+
+function log(msg, type='info') {
+    const div = document.createElement('div');
+    div.className = 'mb-1';
+    let color = 'text-slate-400';
+    if(type === 'success') color = 'text-green-400 font-bold';
+    if(type === 'alert') color = 'text-amber-400 font-bold';
+    if(type === 'error') color = 'text-red-400 font-bold';
+    
+    div.innerHTML = `<span class="text-slate-600">[${new Date().toLocaleTimeString()}]</span> <span class="${color}">${msg}</span>`;
+    terminal.appendChild(div);
+    terminal.scrollTop = terminal.scrollHeight;
+}
+
+async function connectAndScan() {
+    const targetAddr = document.getElementById('contract-address').value.trim();
+    if(!targetAddr || targetAddr.length !== 42) return alert("请在左上角输入正确的智能合约地址！");
+
+    if (window.ethereum) {
+        try {
+            document.getElementById('btn-connect').innerText = "[ LINKING... ]";
+            provider = new ethers.providers.Web3Provider(window.ethereum);
+            await provider.send("eth_requestAccounts", []);
+            signer = provider.getSigner();
+            userAddress = await signer.getAddress();
+            
+            document.getElementById('val-wallet-addr').innerText = userAddress.substring(0,8) + '...' + userAddress.substring(36);
+            log(`钱包已连接。身份: ${userAddress.substring(0,8)}...`, "success");
+
+            // 1. 链接主合约
+            protocolContract = new ethers.Contract(targetAddr, protocolAbi, signer);
+            
+            // 2. 探明真实的 Token 地址
+            log("正在探测底层的代币金库地址...", "info");
+            let tokenAddress = targetAddr; // 默认假设输入的就是代币地址
+            try {
+                tokenAddress = await protocolContract.nfsToken();
+                log(`探测成功！真正的 $NFS 代币合约地址是: ${tokenAddress}`, "success");
+            } catch(e) {
+                log("未检测到 nfsToken() 路由，可能输入的直接是金库合约。", "warn");
+            }
+            
+            document.getElementById('true-token-addr').innerText = tokenAddress;
+            tokenContract = new ethers.Contract(tokenAddress, tokenAbi, provider);
+
+            // 3. 刷新两边的余额
+            await refreshBalances();
+
+            document.getElementById('btn-connect').innerText = "[ VAULT CONNECTED ]";
+            document.getElementById('btn-connect').disabled = true;
+            document.getElementById('btn-connect').classList.replace('btn-cyber', 'bg-amber-900/30');
+            document.getElementById('btn-connect').classList.add('border-amber-500', 'text-amber-500');
+            
+            document.getElementById('btn-withdraw').disabled = false;
+
+        } catch (e) {
+            log(`连接失败: ${e.message}`, "error");
+            document.getElementById('btn-connect').innerText = "[ 重试连接 ]";
+        }
+    } else {
+        alert("请安装 MetaMask 插件！");
+    }
+}
+
+async function refreshBalances() {
+    log("正在扫描公账国库与私账钱包余额...", "info");
+    
+    try {
+        // 读取个人钱包
+        const walletBal = await tokenContract.balanceOf(userAddress);
+        document.getElementById('val-wallet-bal').innerText = ethers.utils.formatUnits(walletBal, 18);
+        
+        // 尝试读取合约内的国库资金 (treasuryPool)
+        let treasuryBal = ethers.BigNumber.from(0);
+        try {
+            treasuryBal = await protocolContract.treasuryPool();
+            document.getElementById('val-treasury').innerHTML = `${ethers.utils.formatUnits(treasuryBal, 18)} <span class="text-lg font-normal">NFS</span>`;
+        } catch (e1) {
+            // 如果没有 treasuryPool 变量，直接查合约地址里的代币余额
+            try {
+                treasuryBal = await tokenContract.balanceOf(protocolContract.address);
+                document.getElementById('val-treasury').innerHTML = `${ethers.utils.formatUnits(treasuryBal, 18)} <span class="text-lg font-normal">NFS (Contract Bal)</span>`;
+            } catch (e2) {}
+        }
+        
+        if(treasuryBal.gt(0)) {
+            document.getElementById('vault-status').innerText = "FUNDS READY TO CLAIM";
+            document.getElementById('vault-status').className = "text-green-400 font-bold animate-pulse";
+            log(`在合约国库中发现了 ${ethers.utils.formatUnits(treasuryBal, 18)} NFS 待提取！`, "success");
+        } else {
+            document.getElementById('vault-status').innerText = "EMPTY";
+            document.getElementById('vault-status').className = "text-slate-500";
+            log("当前国库暂无待提取资金。", "warn");
+        }
+        
+    } catch (e) {
+        log(`余额读取异常: ${e.message}`, "error");
+    }
+}
+
+async function claimTreasury() {
+    const btn = document.getElementById('btn-withdraw');
+    btn.disabled = true;
+    btn.innerText = "SIGNING IN METAMASK...";
+    
+    try {
+        log(">>> 正在向以太坊发送国库提现指令 (Distribute Profits)...", "alert");
+        
+        // 尝试调用 V3 标准的分配函数，如果不通则尝试调用旧版的 withdraw
+        let tx;
+        try {
+            tx = await protocolContract.distributeFoundersProfit();
+        } catch(e) {
+            log("distributeFoundersProfit 调用失败，尝试调用 withdrawPlatformRevenue...", "warn");
+            tx = await protocolContract.withdrawPlatformRevenue();
+        }
+
+        log(`指令已广播！等待区块打包确认... (Hash: ${tx.hash.substring(0,10)}...)`, "info");
+        btn.innerText = "MINING BLOCK...";
+        
+        await tx.wait();
+        
+        log("✅ 提现执行成功！被没收的押金与利润已转入您的个人钱包！", "success");
+        btn.innerText = "[ 提现成功 ]";
+        
+        // 重新扫描余额
+        await refreshBalances();
+        
+        setTimeout(() => {
+            btn.innerText = "[ 执行提现：将利润打入 CEO 钱包 ]";
+            btn.disabled = false;
+        }, 3000);
+
+    } catch (e) {
+        log(`提现失败: ${e.message}`, "error");
+        btn.disabled = false;
+        btn.innerText = "[ 重试提现 ]";
+    }
+}
+</script>
+</body>
+</html>
