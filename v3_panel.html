@@ -1,246 +1,345 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NeuralFans - Mainnet Absolute Console</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
-<style>
-    body { background-color: #030712; color: #e2e8f0; font-family: 'JetBrains Mono', 'Courier New', monospace; overflow-x: hidden; }
-    .neon-blue { color: #00E5FF; text-shadow: 0 0 10px rgba(0, 229, 255, 0.4); }
-    .neon-gold { color: #F59E0B; text-shadow: 0 0 10px rgba(245, 158, 11, 0.4); }
-    .panel-glass { background: rgba(15, 23, 42, 0.8); border: 1px solid #1e293b; backdrop-filter: blur(12px); box-shadow: inset 0 0 20px rgba(0,0,0,0.5); }
-    .btn-cyber { background: linear-gradient(90deg, #1e293b 0%, #0f172a 100%); border: 1px solid #00E5FF; color: #00E5FF; font-weight: bold; transition: all 0.3s ease; }
-    .btn-cyber:hover:not(:disabled) { background: #00E5FF; color: #000; box-shadow: 0 0 15px rgba(0, 229, 255, 0.6); transform: translateY(-2px); }
-    .btn-cyber:disabled { opacity: 0.5; border-color: #334155; color: #64748b; cursor: not-allowed; transform: none; box-shadow: none; }
-    .terminal { height: 250px; overflow-y: auto; background: #000; padding: 1rem; border-radius: 0.5rem; border: 1px solid #1e293b; font-size: 0.8rem; line-height: 1.6; }
-    ::-webkit-scrollbar { width: 4px; }
-    ::-webkit-scrollbar-track { background: #030712; }
-    ::-webkit-scrollbar-thumb { background: #334155; }
-</style>
-</head>
-<body class="p-6 md:p-10 min-h-screen max-w-6xl mx-auto flex flex-col gap-6">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NeuralFans V4.5 - Ultimate Radar Console</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
+    <style>
+        body { background-color: #030712; color: #e2e8f0; font-family: 'JetBrains Mono', monospace; overflow-x: hidden; }
+        .neon-blue { color: #00E5FF; text-shadow: 0 0 10px rgba(0, 229, 255, 0.5); }
+        .neon-red { color: #FF3366; text-shadow: 0 0 10px rgba(255, 51, 102, 0.5); }
+        .panel-glass { background: rgba(15, 23, 42, 0.8); border: 1px solid #1e293b; backdrop-filter: blur(12px); }
+        
+        .btn-cyber { background: linear-gradient(90deg, #1e293b 0%, #0f172a 100%); border: 1px solid #00E5FF; color: #00E5FF; transition: all 0.3s; }
+        .btn-cyber:hover:not(:disabled) { background: #00E5FF; color: #000; box-shadow: 0 0 15px rgba(0, 229, 255, 0.6); }
+        .btn-cyber:disabled { opacity: 0.5; border-color: #334155; color: #64748b; cursor: not-allowed; }
 
-<header class="flex flex-col md:flex-row justify-between items-end border-b border-slate-800 pb-4">
+        .btn-slash { background: #991b1b; color: #fff; border: 1px solid #f87171; transition: all 0.2s; font-weight: bold; }
+        .btn-slash:hover { background: #dc2626; box-shadow: 0 0 15px #dc2626; }
+
+        .scan-line { width: 100%; height: 2px; background: #00E5FF; position: absolute; top: 0; left: 0; opacity: 0.5; animation: scan 3s linear infinite; pointer-events: none; }
+        @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
+
+        .terminal { height: 200px; overflow-y: auto; background: #000; padding: 1rem; border-radius: 0.5rem; border: 1px solid #1e293b; font-size: 0.75rem; color: #94a3b8; }
+        
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: #030712; }
+        ::-webkit-scrollbar-thumb { background: #334155; }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; box-shadow: 0 0 8px currentColor; }
+    </style>
+</head>
+<body class="p-6 md:p-8 min-h-screen max-w-7xl mx-auto flex flex-col gap-6">
+
+<header class="border-b border-slate-800 pb-6 flex flex-col md:flex-row justify-between items-end gap-4">
     <div>
         <h1 class="text-3xl font-black tracking-tighter uppercase">
-            <span class="text-white">Mainnet</span><span class="neon-blue"> Control Deck</span>
+            <span class="text-white">Empire</span><span class="neon-blue"> Radar Mode</span>
         </h1>
-        <p class="text-[10px] text-gray-500 tracking-widest uppercase mt-1">Direct NeuralFansProtocol Uplink</p>
+        <p class="text-[10px] text-slate-500 mt-1 uppercase tracking-widest">Arbitrum Mainnet | Omni-Scanning Protocol</p>
     </div>
-    <div class="mt-4 md:mt-0 flex gap-2 w-full md:w-auto">
-        <input type="text" id="protocol-address" placeholder="粘贴你在 Remix 部署的 NeuralFansProtocol 地址..." class="bg-black border border-slate-700 px-3 py-2 rounded text-xs w-80 focus:border-cyan-500 outline-none text-cyan-400">
-        <button class="btn-cyber px-6 py-2 rounded text-xs tracking-widest" id="btn-connect" onclick="connectAndVerify()">
-            [ INIT CONNECTION ]
+    <div class="flex gap-4">
+        <input type="text" id="target-contract" value="0x171F3ca665782f6EAAb574C2d63c43712c93fcc1" class="bg-black border border-slate-700 px-3 py-2 rounded text-[10px] w-64 focus:border-cyan-500 outline-none text-cyan-400" placeholder="目标 HR 合约地址">
+        <button class="btn-cyber px-6 py-2 rounded text-sm font-bold tracking-widest" id="btn-connect" onclick="connectWallet()">
+            [ 链接 CEO 钱包 ]
         </button>
     </div>
 </header>
 
-<main class="grid grid-cols-1 lg:grid-cols-12 gap-8 flex-grow">
+<main class="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-grow">
     
-    <!-- 左侧：身份与权限 -->
-    <div class="panel-glass rounded-xl p-6 flex flex-col lg:col-span-5 relative overflow-hidden" id="auth-panel">
-        <h2 class="text-sm font-bold text-white uppercase tracking-widest flex items-center gap-2 border-b border-gray-800 pb-2 mb-6">
-            <span class="text-amber-400">🔑</span> 最高权限核验 (Authorization)
-        </h2>
-        
-        <div class="space-y-4">
-            <div>
-                <div class="text-[10px] text-gray-500 uppercase">当前连接钱包</div>
-                <div class="text-sm font-bold text-white" id="your-addr">未连接</div>
-                <div class="text-[10px] text-cyan-400 mt-1" id="your-nfs">余额: 0.00 NFS</div>
-            </div>
+    <!-- 雷达与员工矩阵 -->
+    <div class="panel-glass rounded-xl p-6 lg:col-span-8 flex flex-col relative overflow-hidden">
+        <div class="scan-line hidden" id="radar-scan"></div>
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 border-b border-slate-800 pb-2 gap-4 relative z-10">
+            <h2 class="text-sm font-bold text-white uppercase tracking-widest flex items-center gap-2">
+                <span class="text-cyan-400">📡</span> 全网特工实况雷达 (Live Roster)
+            </h2>
             
-            <div class="border-t border-slate-800 pt-4">
-                <div class="text-[10px] text-gray-500 uppercase">目标合约认定的 CEO</div>
-                <div class="text-sm font-bold text-slate-400" id="contract-ceo">等待检索...</div>
-            </div>
-
-            <div class="mt-4 p-4 rounded-lg bg-black/50 border border-slate-800 text-center transition-all" id="auth-result">
-                <div class="text-xs font-bold text-slate-500 tracking-widest">请连接并输入合约地址</div>
+            <!-- 手动防呆追踪 -->
+            <div class="flex gap-2">
+                <input type="text" id="manual-address" placeholder="手动填入员工 0x 地址..." class="bg-black border border-slate-700 text-cyan-400 px-3 py-1 rounded text-[10px] w-48 focus:outline-none focus:border-cyan-500">
+                <button onclick="addManualAgent()" class="bg-slate-800 hover:bg-slate-700 text-cyan-400 px-3 py-1 rounded text-[10px] border border-slate-600 transition">强行追踪</button>
+                <button onclick="triggerRadarScan()" class="bg-cyan-900/50 hover:bg-cyan-900 text-cyan-400 px-3 py-1 rounded text-[10px] border border-cyan-800 transition font-bold" id="btn-scan">
+                    🔄 启动深层雷达
+                </button>
             </div>
         </div>
-    </div>
-
-    <!-- 右侧：帝国控制台 -->
-    <div class="panel-glass rounded-xl p-6 flex flex-col lg:col-span-7">
-        <h2 class="text-sm font-bold text-white uppercase tracking-widest flex justify-between items-center border-b border-gray-800 pb-2 mb-6">
-            <span class="flex items-center gap-2"><span class="text-emerald-400">⚙️</span> 帝国指令矩阵</span>
-            <span class="text-[9px] bg-slate-800 px-2 py-1 rounded text-slate-400" id="system-status">SYS: UNKNOWN</span>
-        </h2>
         
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 flex-grow">
-            <!-- 国库模块 -->
-            <div class="bg-black/50 border border-slate-800 p-4 rounded flex flex-col justify-between">
-                <div>
-                    <div class="text-[10px] text-gray-500 uppercase mb-1">主网国库分红池 (Treasury)</div>
-                    <div class="text-2xl font-bold neon-gold" id="val-treasury">0.00 <span class="text-sm">NFS</span></div>
-                </div>
-                <button class="w-full bg-emerald-900/30 hover:bg-emerald-900/80 border border-emerald-500 text-emerald-400 py-2 rounded text-xs font-bold transition mt-4" onclick="claimProfits()" id="btn-claim" disabled>
-                    一键提取国库利润
-                </button>
-            </div>
-
-            <!-- 熔断模块 -->
-            <div class="bg-black/50 border border-slate-800 p-4 rounded flex flex-col justify-between">
-                <div>
-                    <div class="text-[10px] text-gray-500 uppercase mb-1">全局网络状态 (Veto Switch)</div>
-                    <div class="text-lg font-bold text-green-400" id="val-veto">● RUNNING</div>
-                </div>
-                <button class="w-full bg-red-900/30 hover:bg-red-900/80 border border-red-500 text-red-400 py-2 rounded text-xs font-bold transition mt-4" onclick="toggleVeto()" id="btn-veto" disabled>
-                    🔴 触发/解除 全网熔断
-                </button>
-            </div>
+        <div class="overflow-x-auto relative z-10">
+            <table class="w-full text-left border-collapse">
+                <thead class="text-[10px] text-slate-500 uppercase border-b border-slate-800">
+                    <tr>
+                        <th class="pb-3 font-normal pl-2">员工地址 (Wallet)</th>
+                        <th class="pb-3 font-normal">类型 (Version)</th>
+                        <th class="pb-3 font-normal text-center">状态</th>
+                        <th class="pb-3 font-normal text-right">锁定押金</th>
+                        <th class="pb-3 font-normal text-right pr-2">最高权限指令</th>
+                    </tr>
+                </thead>
+                <tbody class="text-xs" id="agent-list">
+                    <tr><td colspan="5" class="py-10 text-center text-slate-600">Waiting for CEO connection...</td></tr>
+                </tbody>
+            </table>
         </div>
     </div>
 
-    <!-- 底部终端 -->
-    <div class="panel-glass p-6 lg:col-span-12">
-        <div class="terminal text-gray-400" id="terminal-log">
-            <div class="mb-1">>> 准备建立对 NeuralFansProtocol 的神级连接。</div>
-            <div class="mb-1">>> 请在右上角输入你在 Remix 中部署的主协议地址...</div>
+    <!-- 状态监控与日志 -->
+    <div class="flex flex-col gap-6 lg:col-span-4">
+        
+        <div class="panel-glass p-6 rounded-xl border-t-2 border-t-amber-500">
+            <div class="flex items-center justify-between mb-2">
+                <div class="text-[10px] text-slate-400 uppercase tracking-widest">身份权限核验</div>
+                <div id="auth-badge" class="px-2 py-0.5 rounded text-[8px] font-bold bg-slate-800 text-slate-500">PENDING</div>
+            </div>
+            <div class="text-sm font-bold text-white truncate" id="ceo-address">---</div>
+            <div class="text-[10px] text-slate-500 mt-2">合约认定的 CEO: <span id="contract-ceo" class="text-cyan-400">未知</span></div>
+        </div>
+
+        <div class="panel-glass p-6 rounded-xl flex-grow flex flex-col">
+            <h2 class="text-xs font-bold text-white uppercase tracking-widest mb-2 border-b border-gray-800 pb-2">
+                📜 执法雷达日志
+            </h2>
+            <div class="terminal flex-grow" id="sys-log">
+                <div class="mb-1 text-slate-600">>> 正在初始化 V4.5 雷达全景引擎...</div>
+            </div>
         </div>
     </div>
 
 </main>
 
 <script>
-// --- 极简 ABI (完全贴合 NeuralFans_Mainnet_Final.sol) ---
-const protocolAbi = [
+// --- 双版本 ABI 引擎 (通吃新旧合约) ---
+const commonAbi = [
+    "function ceo() view returns (address)",
     "function CEO_ADMIN() view returns (address)",
-    "function nfsToken() view returns (address)",
-    "function treasuryPool() view returns (uint256)",
-    "function isVetoHalted() view returns (bool)",
-    "function distributeFoundersProfit() external",
-    "function toggleEmergencyVeto() external"
-];
-const tokenAbi = [
-    "function balanceOf(address) view returns (uint256)"
+    "event AgentHired(address indexed agent, string role, uint256 stake)",
+    "event NodeStaked(address indexed node, uint256 amount)",
+    // V2 旧版读取
+    "function workforce(address) view returns (string role, uint256 stakedAmount, uint256 salaryPerBlock, uint256 lastClaimBlock, bool isActive)",
+    // V3 新版读取
+    "function agents(address) view returns (bool isRegistered, uint256 stakedAmount, uint256 reputation)",
+    // 处决指令
+    "function terminateAndSlash(address _agent) external",
+    "function slashAgent(address target) external",
+    "function slashCreator(address creator) external"
 ];
 
-let provider, signer, userAddress, protocolContract, tokenContract;
-const term = document.getElementById('terminal-log');
+let provider, signer, targetContract, ceoAddress;
+let trackedAgents = new Set(); // 使用 Set 防止地址重复
 
-function log(msg, type='info') {
+const term = document.getElementById('sys-log');
+const listEl = document.getElementById('agent-list');
+
+function log(msg, type = 'info') {
     const div = document.createElement('div');
     div.className = 'mb-1';
     let color = 'text-slate-400';
     if(type === 'success') color = 'text-emerald-400 font-bold';
-    if(type === 'error') color = 'text-red-400 font-bold';
-    if(type === 'warn') color = 'text-amber-400 font-bold';
+    if(type === 'alert') color = 'text-red-400 font-bold';
+    if(type === 'action') color = 'text-cyan-400';
     
     div.innerHTML = `<span class="text-slate-600">[${new Date().toLocaleTimeString()}]</span> <span class="${color}">${msg}</span>`;
-    term.appendChild(div);
-    term.scrollTop = term.scrollHeight;
+    term.prepend(div);
 }
 
-async function connectAndVerify() {
-    const targetAddr = document.getElementById('protocol-address').value.trim();
-    if(!targetAddr || targetAddr.length !== 42) return alert("请输入正确格式的智能合约地址！");
+// 1. 连接钱包与核验
+async function connectWallet() {
+    if (!window.ethereum) return alert("请先安装 MetaMask 插件！");
+    
+    try {
+        provider = new ethers.providers.Web3Provider(window.ethereum);
+        await provider.send("eth_requestAccounts", []);
+        signer = provider.getSigner();
+        ceoAddress = await signer.getAddress();
+        
+        const contractAddr = document.getElementById('target-contract').value.trim();
+        targetContract = new ethers.Contract(contractAddr, commonAbi, signer);
+        
+        document.getElementById('btn-connect').innerText = `[ CONNECTED: ${ceoAddress.substring(0,6)} ]`;
+        document.getElementById('btn-connect').classList.replace('btn-cyber', 'bg-emerald-900/30');
+        document.getElementById('btn-connect').classList.add('border-emerald-500', 'text-emerald-400');
+        document.getElementById('ceo-address').innerText = ceoAddress;
+        
+        await checkIdentity();
+        triggerRadarScan(); // 自动启动一次雷达
+        
+    } catch (e) {
+        log(`连接异常: ${e.message}`, "alert");
+    }
+}
 
-    if (window.ethereum) {
+// 核对 CEO
+async function checkIdentity() {
+    try {
+        let actualCeo;
+        try { actualCeo = await targetContract.ceo(); } 
+        catch(e) { actualCeo = await targetContract.CEO_ADMIN(); }
+        
+        document.getElementById('contract-ceo').innerText = actualCeo.substring(0,8) + '...';
+        const badge = document.getElementById('auth-badge');
+        
+        if (actualCeo.toLowerCase() === ceoAddress.toLowerCase()) {
+            badge.innerText = "MATCHED";
+            badge.className = "px-2 py-0.5 rounded text-[8px] font-bold bg-emerald-900/50 text-emerald-400 border border-emerald-500";
+            log("身份核实：您是该合约的最高权力持有者。", "success");
+        } else {
+            badge.innerText = "MISMATCH";
+            badge.className = "px-2 py-0.5 rounded text-[8px] font-bold bg-red-900/50 text-red-400 border border-red-500";
+            log("警告：您当前的钱包不是该合约的 CEO！", "alert");
+        }
+    } catch (e) {
+        log("无法读取 CEO 信息，请检查合约地址。", "alert");
+    }
+}
+
+// 2. 深层雷达扫描 (抗 RPC 阻断版)
+async function triggerRadarScan() {
+    if (!targetContract) return alert("请先连接钱包！");
+    
+    const btn = document.getElementById('btn-scan');
+    btn.innerText = "雷达探测中...";
+    document.getElementById('radar-scan').classList.remove('hidden');
+    log("启动防阻断雷达... 正在检索最近区块的入职事件...", "action");
+
+    try {
+        const currentBlock = await provider.getBlockNumber();
+        // 缩短扫描范围至最近 49000 个区块，完美避开 RPC 的风控拦截
+        const fromBlock = Math.max(0, currentBlock - 49000); 
+        
+        // 尝试抓取旧版 AgentHired 和新版 NodeStaked 两种事件
+        const filterHired = targetContract.filters.AgentHired();
+        const filterStaked = targetContract.filters.NodeStaked();
+        
         try {
-            document.getElementById('btn-connect').innerText = "[ LINKING... ]";
-            provider = new ethers.providers.Web3Provider(window.ethereum);
-            await provider.send("eth_requestAccounts", []);
-            signer = provider.getSigner();
-            userAddress = await signer.getAddress();
+            const events = await Promise.all([
+                targetContract.queryFilter(filterHired, fromBlock, "latest"),
+                targetContract.queryFilter(filterStaked, fromBlock, "latest")
+            ]);
             
-            document.getElementById('your-addr').innerText = userAddress;
-            document.getElementById('your-addr').classList.replace('text-white', 'text-cyan-400');
+            const allEvents = events.flat();
+            allEvents.forEach(e => {
+                const addr = e.args.agent || e.args.node;
+                if(addr) trackedAgents.add(addr.toLowerCase());
+            });
             
-            log(`连接钱包成功: ${userAddress}`, 'success');
-            log(`正在向目标合约 ${targetAddr} 提取权限变量...`, 'info');
+            log(`雷达扫描完成。在近期区块中发现了 ${trackedAgents.size} 个活动痕迹。`, "success");
+        } catch (scanError) {
+            log(`RPC 深度扫描被拒绝，将仅依靠手动添加地址。(${scanError.message})`, "warn");
+        }
+        
+        await renderRoster();
+        
+    } catch (e) {
+        log(`雷达扫描异常: ${e.message}`, "alert");
+    } finally {
+        btn.innerText = "🔄 启动深层雷达";
+        document.getElementById('radar-scan').classList.add('hidden');
+    }
+}
 
-            protocolContract = new ethers.Contract(targetAddr, protocolAbi, signer);
-            
-            // 1. 读取合约里的 CEO
-            const contractCEO = await protocolContract.CEO_ADMIN();
-            document.getElementById('contract-ceo').innerText = contractCEO;
+// 3. 强行追踪 (万无一失的防呆机制)
+async function addManualAgent() {
+    if(!targetContract) return alert("请先连接钱包！");
+    const input = document.getElementById('manual-address').value.trim();
+    if(ethers.utils.isAddress(input)) {
+        trackedAgents.add(input.toLowerCase());
+        log(`强行锁定追踪目标: ${input}`, "action");
+        document.getElementById('manual-address').value = '';
+        await renderRoster();
+    } else {
+        alert("请输入正确的以太坊 0x 地址！");
+    }
+}
 
-            // 2. 获取代币合约并读取余额
-            const tokenAddr = await protocolContract.nfsToken();
-            tokenContract = new ethers.Contract(tokenAddr, tokenAbi, provider);
-            const bal = await tokenContract.balanceOf(userAddress);
-            document.getElementById('your-nfs').innerText = `余额: ${parseFloat(ethers.utils.formatUnits(bal, 18)).toLocaleString()} NFS`;
+// 4. 渲染矩阵
+async function renderRoster() {
+    if (trackedAgents.size === 0) {
+        listEl.innerHTML = '<tr><td colspan="5" class="py-10 text-center text-slate-600">雷达未扫到任何数据。请尝试右上方【强行追踪】。</td></tr>';
+        return;
+    }
 
-            // 3. 终极比对！
-            const isMatch = contractCEO.toLowerCase() === userAddress.toLowerCase();
-            const resultBox = document.getElementById('auth-result');
-            
-            if (isMatch) {
-                resultBox.className = "mt-4 p-4 rounded-lg bg-emerald-900/20 border border-emerald-500 text-center";
-                resultBox.innerHTML = `<div class="text-lg font-black text-emerald-400 uppercase tracking-widest">ACCESS GRANTED</div><div class="text-[10px] text-emerald-500 mt-1">您是该生态系统的最高统帅</div>`;
-                log("🎉 身份匹配 100%！帝国控制台已解锁。", 'success');
-                
-                document.getElementById('btn-connect').innerText = "[ SECURE LINK ACTIVE ]";
-                document.getElementById('btn-connect').classList.replace('btn-cyber', 'bg-emerald-900/30');
-                document.getElementById('btn-connect').classList.add('border-emerald-500', 'text-emerald-500');
-                
-                // 激活按钮
-                document.getElementById('btn-claim').disabled = false;
-                document.getElementById('btn-veto').disabled = false;
-                
-                await refreshDash();
-            } else {
-                resultBox.className = "mt-4 p-4 rounded-lg bg-red-900/20 border border-red-500 text-center";
-                resultBox.innerHTML = `<div class="text-lg font-black text-red-500 uppercase tracking-widest">ACCESS DENIED</div><div class="text-[10px] text-red-400 mt-1">您不是该合约的部署者</div>`;
-                log("❌ 权限拒绝：你现在的钱包不是部署这个合约的钱包。", 'error');
-                document.getElementById('btn-connect').innerText = "[ RE-LINK ]";
-            }
+    listEl.innerHTML = '';
+    
+    for (let addr of trackedAgents) {
+        let isActive = false;
+        let stakedAmount = "0";
+        let agentType = "Unknown";
+        let isValid = false;
 
+        // 双引擎探测：先试 V2，再试 V3
+        try {
+            const dataV2 = await targetContract.workforce(addr);
+            isActive = dataV2.isActive;
+            stakedAmount = ethers.utils.formatUnits(dataV2.stakedAmount, 18);
+            agentType = "V2 (Workforce)";
+            if(dataV2.role !== "") isValid = true;
         } catch (e) {
-            log(`通信失败: ${e.message}`, 'error');
-            document.getElementById('btn-connect').innerText = "[ ERROR ]";
+            try {
+                const dataV3 = await targetContract.agents(addr);
+                isActive = dataV3.isRegistered;
+                stakedAmount = ethers.utils.formatUnits(dataV3.stakedAmount, 18);
+                agentType = "V3 (Node)";
+                if(parseFloat(stakedAmount) > 0) isValid = true;
+            } catch (err) {
+                // 两边都查不到
+            }
+        }
+
+        if (isValid || parseFloat(stakedAmount) > 0) {
+            const tr = document.createElement('tr');
+            tr.className = "border-b border-slate-800/50 hover:bg-slate-900/50 transition";
+            
+            const statusHtml = isActive 
+                ? `<span class="status-dot bg-green-500 mr-2"></span><span class="text-emerald-400 font-bold">ACTIVE</span>`
+                : `<span class="status-dot bg-red-500 mr-2"></span><span class="text-red-500 font-bold">SLASHED</span>`;
+            
+            const actionBtn = isActive
+                ? `<button onclick="executeSlashing('${addr}')" class="btn-slash px-3 py-1.5 rounded text-[10px]">一键没收充公</button>`
+                : `<span class="text-slate-600 text-[10px]">资产已清零</span>`;
+
+            tr.innerHTML = `
+                <td class="py-4 pl-2 text-cyan-400 font-mono">${addr.substring(0,10)}...${addr.substring(36)}</td>
+                <td class="py-4 text-slate-400 text-[10px]">${agentType}</td>
+                <td class="py-4 text-center">${statusHtml}</td>
+                <td class="py-4 text-right text-amber-400 font-bold font-mono">${isActive ? stakedAmount : '0.0'} NFS</td>
+                <td class="py-4 text-right pr-2">${actionBtn}</td>
+            `;
+            listEl.appendChild(tr);
         }
     }
 }
 
-async function refreshDash() {
+// 5. 跨版本自动处决
+async function executeSlashing(target) {
+    if(!confirm("⚠️ 帝国最高行政指令 ⚠️\n\n确认物理开除该节点并没收其所有押金？此操作不可逆！")) return;
+    
+    log(`>>> 正在向以太坊广播处决令: ${target} <<<`, "alert");
+    
+    let tx;
     try {
-        const treasury = await protocolContract.treasuryPool();
-        document.getElementById('val-treasury').innerHTML = `${ethers.utils.formatUnits(treasury, 18)} <span class="text-sm">NFS</span>`;
-        
-        const isHalted = await protocolContract.isVetoHalted();
-        const vetoEl = document.getElementById('val-veto');
-        const sysBadge = document.getElementById('system-status');
-        
-        if (isHalted) {
-            vetoEl.innerText = "🔴 HALTED (已熔断)";
-            vetoEl.className = "text-lg font-bold text-red-500 animate-pulse";
-            sysBadge.innerText = "SYS: FROZEN";
-            sysBadge.className = "text-[9px] bg-red-900 px-2 py-1 rounded text-red-400";
-        } else {
-            vetoEl.innerText = "● RUNNING (正常运转)";
-            vetoEl.className = "text-lg font-bold text-green-400";
-            sysBadge.innerText = "SYS: OPERATIONAL";
-            sysBadge.className = "text-[9px] bg-emerald-900 px-2 py-1 rounded text-emerald-400";
+        // 尝试 V3 斩杀
+        tx = await targetContract.slashAgent(target);
+    } catch (e1) {
+        try {
+            // 尝试 V2 斩杀
+            tx = await targetContract.terminateAndSlash(target);
+        } catch (e2) {
+            try {
+                // 尝试 Market 斩杀
+                tx = await targetContract.slashCreator(target);
+            } catch (e3) {
+                log(`执行被拒绝: 您可能不是该合约的 CEO。`, "alert");
+                return;
+            }
         }
-    } catch(e) {}
-}
+    }
 
-async function claimProfits() {
-    try {
-        log("发起提取国库利润指令...", "warn");
-        const tx = await protocolContract.distributeFoundersProfit();
-        log(`交易已发送，等待打包... Tx: ${tx.hash.substring(0,10)}...`, "info");
-        await tx.wait();
-        log("✅ 利润提取成功！20% 已流向 CTO 算力池，80% 已进入您的钱包。", "success");
-        await refreshDash();
-    } catch(e) { log(`提取失败: ${e.message}`, "error"); }
-}
-
-async function toggleVeto() {
-    if(!confirm("⚠️ 确定要切换全网熔断状态吗？这会停止所有数据交易！")) return;
-    try {
-        log("执行上帝按钮 (Veto Toggle)...", "warn");
-        const tx = await protocolContract.toggleEmergencyVeto();
-        log(`指令已广播，等待执行... Tx: ${tx.hash.substring(0,10)}...`, "info");
-        await tx.wait();
-        log("✅ 熔断状态已切换！", "success");
-        await refreshDash();
-    } catch(e) { log(`执行失败: ${e.message}`, "error"); }
+    log(`处决令已发送！等待 Arbitrum 打包确认... (Hash: ${tx.hash.substring(0,10)}...)`, "info");
+    await tx.wait();
+    log(`💀 执法成功。资产已强行扣入国库。`, "success");
+    triggerRadarScan();
 }
 </script>
 </body>
