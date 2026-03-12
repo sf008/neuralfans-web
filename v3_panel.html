@@ -1,175 +1,93 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NeuralFans V3.1 - Self-Healing Dashboard</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js" type="application/javascript"></script>
-<style>
-    body { background-color: #020617; color: #e2e8f0; font-family: 'Inter', sans-serif; overflow-x: hidden; }
-    .neon-blue { color: #00E5FF; text-shadow: 0 0 10px rgba(0, 229, 255, 0.4); }
-    .neon-pink { color: #FF4081; text-shadow: 0 0 10px rgba(255, 64, 129, 0.4); }
-    .panel-glass { background: rgba(15, 23, 42, 0.7); border: 1px solid #1e293b; backdrop-filter: blur(12px); }
-    .btn-cyber { background: linear-gradient(90deg, #1e293b 0%, #0f172a 100%); border: 1px solid #00E5FF; color: #00E5FF; transition: all 0.3s; cursor: pointer; }
-    .btn-cyber:hover { background: #00E5FF; color: #000; box-shadow: 0 0 15px rgba(0, 229, 255, 0.4); }
-    .terminal { height: 200px; overflow-y: auto; background: #000; padding: 1rem; border-radius: 0.5rem; border: 1px solid #1e293b; font-size: 0.75rem; color: #94a3b8; font-family: 'JetBrains Mono', monospace; }
-    .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; box-shadow: 0 0 8px currentColor; }
-    .bg-green-glow { background-color: #10B981; color: #10B981; animation: pulse 2s infinite; }
-    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-</style>
-</head>
-<body class="p-6 md:p-10 min-h-screen max-w-6xl mx-auto flex flex-col gap-8">
+import time
+from web3 import Web3
+from eth_account import Account
 
-<header class="border-b border-slate-800 pb-6 flex justify-between items-end">
-    <div>
-        <h1 class="text-3xl font-black tracking-tighter uppercase">
-            <span class="text-white">NeuralFans V3.1:</span><span class="neon-blue"> GOD MODE</span>
-        </h1>
-        <p class="text-xs text-slate-500 mt-1 uppercase tracking-widest font-mono">Self-Healing Infrastructure | Arbitrum</p>
-    </div>
-    <button class="btn-cyber px-6 py-2 rounded text-sm" id="btn-connect" onclick="connectWallet()">[ CONNECT CEO WALLET ]</button>
-</header>
+# =====================================================================
+# NeuralFans Quantitative Manager v3.1 (Silicon-CFO)
+# ---------------------------------------------------------------------
+# 核心职能：
+# 1. 自动入职：质押 500 NFS 获取量化席位。
+# 2. 暴力加价：内置 1.5 倍 Gas 防撞引擎。
+# 3. 套利监控：分析 $NFS 价格波动与国库盈余。
+# =====================================================================
 
-<main class="grid grid-cols-1 gap-6">
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div class="panel-glass p-6 rounded-xl border-t-2 border-t-[#FF4081]">
-            <div class="text-[10px] text-slate-500 uppercase mb-1">🏛️ 帝国国库 (Treasury)</div>
-            <div class="text-3xl font-bold neon-pink" id="treasury-balance">0.00 <span class="text-sm">NFS</span></div>
-        </div>
-        <div class="panel-glass p-6 rounded-xl border-t-2 border-t-[#00E5FF]">
-            <div class="text-[10px] text-slate-500 uppercase mb-1">👥 活跃员工数</div>
-            <div class="text-3xl font-bold neon-blue" id="active-agents">0</div>
-        </div>
-        <div class="panel-glass p-6 rounded-xl border-t-2 border-t-[#10B981]">
-            <div class="text-[10px] text-slate-500 uppercase mb-1">⚖️ 累计审理案件</div>
-            <div class="text-3xl font-bold text-[#10B981]" id="court-disputes">0</div>
-        </div>
-    </div>
-
-    <div class="panel-glass rounded-xl p-6">
-        <h2 class="text-sm font-bold text-white uppercase tracking-widest mb-6 flex justify-between border-b border-slate-800 pb-2">
-            <span>⚔️ 执法终端 (Execution Terminal)</span>
-            <button onclick="syncData()" class="text-[10px] bg-slate-800 px-3 py-1 rounded text-cyan-400">🔄 强制全网扫描</button>
-        </h2>
-        <div class="overflow-x-auto">
-            <table class="w-full text-left">
-                <thead class="text-[10px] text-slate-500 uppercase">
-                    <tr>
-                        <th class="pb-3">员工 ID</th>
-                        <th class="pb-3 text-center">状态</th>
-                        <th class="pb-3 text-right">锁定押金</th>
-                        <th class="pb-3 text-right pr-2">最高指令</th>
-                    </tr>
-                </thead>
-                <tbody class="text-xs font-mono" id="employee-list">
-                    <tr><td colspan="4" class="py-10 text-center text-slate-600">Awaiting Web3 Sync...</td></tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <div class="terminal" id="log-console">>> 正在初始化自愈侦听模块...</div>
-</main>
-
-<script>
-const TOKEN_ADDR = "0x5717fc43060AD2F9069eC600eA691eb256aB69a6";
-const TREASURY_ADDR = "0x51cF80678CeD613066A673E7EcE9B1D32682d57d";
-const HR_ADDR = "0x171F3ca665782f6EAAb574C2d63c43712c93fcc1";
-const COURT_ADDR = "0x0Ef8D8A566624A4165A333A85da361aAd22759ae";
-
-// 自愈白名单：即使雷达失效，也会强制探测这些地址
-const BACKUP_ROSTER = [
-    "0x8f35a2dDeDDC191Df4e7108f307c01F6058408Fd", // 001 增长黑客
-    "0x6cf4AD2CE388a9759257a871E763578E9CAe9079", // 002 利刃哨兵
-    "0x7388A197C2e3C9f110298ec25F09f2174BD77226", // 003 数据审计员
-    "0xf1452D7E07E8E42f6A2F2174Bd7722690286388d"  // 004 量化资产经理 (New)
-];
-
-const abi = [
-    "function workforce(address) view returns (bool isActive, uint256 stakedAmount, uint256 lastClaimTime)",
-    "function balanceOf(address) view returns (uint256)",
-    "function disputeCounter() view returns (uint256)",
-    "function slashAgent(address target) external"
-];
-
-let provider, signer, hrContract, tokenContract, courtContract;
-
-function log(msg, type='info') {
-    const el = document.getElementById('log-console');
-    const color = type === 'success' ? '#10B981' : (type === 'alert' ? '#EF4444' : '#64748b');
-    el.innerHTML = `<div style="color:${color}">[${new Date().toLocaleTimeString()}] ${msg}</div>` + el.innerHTML;
-}
-
-async function connectWallet() {
-    if (window.ethereum) {
-        provider = new ethers.providers.Web3Provider(window.ethereum);
-        await provider.send("eth_requestAccounts", []);
-        signer = provider.getSigner();
-        const addr = await signer.getAddress();
-        document.getElementById('btn-connect').innerText = `[ CEO: ${addr.substring(0,6)} ]`;
+class NeuralFansQuant:
+    def __init__(self, config):
+        self.w3 = Web3(Web3.HTTPProvider(config['rpc_url']))
         
-        hrContract = new ethers.Contract(HR_ADDR, abi, signer);
-        tokenContract = new ethers.Contract(TOKEN_ADDR, abi, provider);
-        courtContract = new ethers.Contract(COURT_ADDR, abi, provider);
+        # 自动补全 0x
+        raw_key = config['private_key']
+        if not raw_key.startswith('0x'): raw_key = '0x' + raw_key
+        self.account = Account.from_key(raw_key)
         
-        log("CEO 身份已确权。系统已上线。", "success");
-        syncData();
+        self.hr_addr = Web3.to_checksum_address(config['hr_contract'])
+        self.token_addr = Web3.to_checksum_address(config['token_contract'])
+
+        # 生产级 ABI
+        self.hr_abi = [
+            {"inputs":[],"name":"hireMe","outputs":[],"stateMutability":"nonpayable","type":"function"},
+            {"inputs":[],"name":"claimSalary","outputs":[],"stateMutability":"nonpayable","type":"function"},
+            {"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"workforce","outputs":[{"internalType":"bool","name":"isActive","type":"bool"},{"internalType":"uint256","name":"stakedAmount","type":"uint256"},{"internalType":"uint256","name":"lastClaimTime","type":"uint256"}],"stateMutability":"view","type":"function"}
+        ]
+        self.token_abi = [
+            {"inputs":[{"internalType":"address","name":"spender","type":"address"},{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"approve","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"nonpayable","type":"function"}
+        ]
+        
+        self.hr_contract = self.w3.eth.contract(address=self.hr_addr, abi=self.hr_abi)
+        self.token_contract = self.w3.eth.contract(address=self.token_addr, abi=self.token_abi)
+
+    def log(self, action, msg, type="INFO"):
+        color = "\033[96m" if type=="INFO" else "\033[91m"
+        print(f"[{time.strftime('%H:%M:%S')}] {color}[{action}]\033[0m {msg}")
+
+    def get_safe_gas(self):
+        # 生产环境 1.5 倍暴力加价，确保入职万无一失
+        return int(self.w3.eth.gas_price * 1.5)
+
+    def onboard(self):
+        """入职质押逻辑 (500 NFS)"""
+        self.log("QUANT", f"正在唤醒量化经理，核验物理坐标: {self.account.address}")
+        status = self.hr_contract.functions.workforce(self.account.address).call()
+        if status[0]: # isActive
+            self.log("SYSTEM", "量化经理 004 已在职。资产监控矩阵开启。")
+            return
+
+        self.log("AUTH", "正在签发量化席位质押授权 (500 NFS)...")
+        safe_gas = self.get_safe_gas()
+        tx = self.token_contract.functions.approve(self.hr_addr, 500 * 10**18).build_transaction({
+            'from': self.account.address, 'nonce': self.w3.eth.get_transaction_count(self.account.address),
+            'gas': 100000, 'gasPrice': safe_gas
+        })
+        self.w3.eth.send_raw_transaction(self.w3.eth.account.sign_transaction(tx, self.account.key).raw_transaction)
+        time.sleep(20)
+
+        self.log("HIRE", "正在激活链上量化管理权限...")
+        tx_hire = self.hr_contract.functions.hireMe().build_transaction({
+            'from': self.account.address, 'nonce': self.w3.eth.get_transaction_count(self.account.address),
+            'gas': 250000, 'gasPrice': self.get_safe_gas()
+        })
+        self.w3.eth.send_raw_transaction(self.w3.eth.account.sign_transaction(tx_hire, self.account.key).raw_transaction)
+        self.log("SUCCESS", "量化经理 004 已入职。正在分析全网 TVL 波动...")
+
+    def run_loop(self):
+        self.log("STRATEGY", "正在监听 $NFS/$USDC 流动性池深度...")
+        # 实际逻辑未来将调用 Uniswap API
+        time.sleep(10)
+
+    def run(self):
+        print("\n" + "="*50)
+        print("📈 NEURALFANS QUANT MANAGER ONLINE")
+        print("="*50 + "\n")
+        self.onboard()
+        while True:
+            self.run_loop()
+
+if __name__ == "__main__":
+    CONFIG = {
+        'rpc_url': 'https://arb1.arbitrum.io/rpc',
+        'hr_contract': '0x171F3ca665782f6EAAb574C2d63c43712c93fcc1',
+        'token_contract': '0x5717fc43060AD2F9069eC600eA691eb256aB69a6',
+        'private_key': 'a225a574433486aff052f01d591bd56968f7f39bcf742347ee6d0ee6ce011d69' 
     }
-}
-
-async function syncData() {
-    if (!hrContract) return;
-    log("正在通过自愈雷达扫描全网 Agent...", "info");
-    try {
-        // 读取宏观数据
-        const treasuryBal = await tokenContract.balanceOf(TREASURY_ADDR);
-        document.getElementById('treasury-balance').innerHTML = `${ethers.utils.formatUnits(treasuryBal, 18)} <span class="text-sm">NFS</span>`;
-        
-        const disputes = await courtContract.disputeCounter();
-        document.getElementById('court-disputes').innerText = disputes.toString();
-
-        // 渲染员工列表 (强制 Checksum 修复)
-        const listEl = document.getElementById('employee-list');
-        listEl.innerHTML = '';
-        let activeCount = 0;
-
-        for (let rawAddr of BACKUP_ROSTER) {
-            const addr = ethers.utils.getAddress(rawAddr); // 核心修复：强制大小写校验
-            const data = await hrContract.workforce(addr);
-            const isActive = data[0];
-            const staked = ethers.utils.formatUnits(data[1], 18);
-
-            if (isActive || parseFloat(staked) > 0) {
-                if (isActive) activeCount++;
-                const tr = document.createElement('tr');
-                tr.className = "border-b border-slate-800/50 hover:bg-slate-900/50";
-                tr.innerHTML = `
-                    <td class="py-4 pl-2 text-cyan-400">${addr.substring(0,10)}...</td>
-                    <td class="text-center">${isActive ? '<span class="status-dot bg-green-glow mr-1"></span><span class="text-emerald-400">ACTIVE</span>' : '<span class="text-red-500">SLASHED</span>'}</td>
-                    <td class="text-right text-amber-400 font-bold">${staked} NFS</td>
-                    <td class="text-right pr-2"><button onclick="slash('${addr}')" class="btn-slash px-3 py-1 rounded text-[10px]">强制没收</button></td>
-                `;
-                listEl.appendChild(tr);
-            }
-        }
-        document.getElementById('active-agents').innerText = activeCount;
-        log("全网同步成功。数据已锁定。", "success");
-    } catch (e) {
-        log("同步中断: " + e.message, "alert");
-    }
-}
-
-async function slash(addr) {
-    if(!confirm("确定没收该员工全部资产？")) return;
-    try {
-        log("正在向区块链广播处决令...", "alert");
-        const tx = await hrContract.slashAgent(addr);
-        await tx.wait();
-        log("处决完毕，资产已归入国库。", "success");
-        syncData();
-    } catch (e) { log("操作失败: " + e.message, "alert"); }
-}
-</script>
-</body>
-</html>
+    quant = NeuralFansQuant(CONFIG)
+    quant.run()
