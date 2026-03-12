@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NeuralFans - AI Workforce Live Terminal</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js" type="application/javascript"></script>
+<style>
+    body { background-color: #020617; color: #e2e8f0; font-family: 'Inter', 'JetBrains Mono', sans-serif; overflow-x: hidden; }
+    .neon-text-blue { color: #00E5FF; text-shadow: 0 0 10px rgba(0, 229, 255, 0.4); }
+    .neon-text-red { color: #f85149; text-shadow: 0 0 10px rgba(248, 81, 73, 0.4); }
+    .panel-glass { background: rgba(15, 23, 42, 0.7); border: 1px solid #1e293b; backdrop-filter: blur(12px); box-shadow: inset 0 0 20px rgba(0,0,0,0.5); }
+    
+    .btn-cyber { background: linear-gradient(90deg, #1e293b 0%, #0f172a 100%); border: 1px solid #00E5FF; color: #00E5FF; font-weight: bold; transition: all 0.3s; }
+    .btn-cyber:hover:not(:disabled) { background: #00E5FF; color: #000; box-shadow: 0 0 15px rgba(0, 229, 255, 0.4); }
+    
+    .btn-slash { background: #991b1b; color: #fff; border: 1px solid #f87171; transition: all 0.2s; font-weight: bold; }
+    .btn-slash:hover { background: #dc2626; box-shadow: 0 0 15px #dc2626; }
+    
+    .terminal { height: 250px; overflow-y: auto; background: #000; padding: 1rem; border-radius: 0.5rem; border: 1px solid #1e293b; font-size: 0.75rem; color: #94a3b8; }
+    
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: #020617; }
+    ::-webkit-scrollbar-thumb { background: #334155; }
+    
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; box-shadow: 0 0 8px currentColor; }
+    .bg-green-glow { background-color: #10B981; color: #10B981; animation: pulse 2s infinite; }
+    .bg-red-glow { background-color: #EF4444; color: #EF4444; }
+    
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+</style>
+</head>
+<body class="p-6 md:p-10 min-h-screen max-w-6xl mx-auto flex flex-col gap-8">
+
+<header class="border-b border-slate-800 pb-6 flex flex-col md:flex-row justify-between items-end gap-4">
+    <div>
+        <h1 class="text-3xl font-black tracking-tighter uppercase">
+            <span class="text-white">Agentic HR:</span><span class="neon-text-blue"> Live Terminal</span>
+        </h1>
+        <p class="text-xs text-slate-500 mt-1 uppercase tracking-widest">Linked to Arbitrum HR Contract: 0x0c44...4A1</p>
+    </div>
+    <button class="btn-cyber px-6 py-2 rounded text-sm tracking-widest" id="btn-connect" onclick="connectWallet()">
+        [ CONNECT CEO WALLET ]
+    </button>
+</header>
+
+<main class="grid grid-cols-1 gap-8">
+    <!-- 核心统计 -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="panel-glass p-6 rounded-xl text-center">
+            <div class="text-[10px] text-slate-500 uppercase mb-1 tracking-widest">HR 托管总押金 (Total Staked)</div>
+            <div class="text-3xl font-bold text-white" id="total-staked">-- <span class="text-sm">NFS</span></div>
+        </div>
+        <div class="panel-glass p-6 rounded-xl text-center">
+            <div class="text-[10px] text-slate-500 uppercase mb-1 tracking-widest">活跃硅基员工 (Active Agents)</div>
+            <div class="text-3xl font-bold neon-text-blue" id="active-count">--</div>
+        </div>
+        <div class="panel-glass p-6 rounded-xl text-center">
+            <div class="text-[10px] text-slate-500 uppercase mb-1 tracking-widest">国库没收收益 (Slashed)</div>
+            <div class="text-3xl font-bold neon-text-red" id="slashed-treasury">0.00 <span class="text-sm">NFS</span></div>
+        </div>
+    </div>
+
+    <!-- 员工列表 -->
+    <div class="panel-glass rounded-xl p-6">
+        <h2 class="text-sm font-bold text-white uppercase tracking-widest mb-6 flex items-center gap-2 border-b border-slate-800 pb-2">
+            <span>👥 现役硅基员工 (Live Roster)</span>
+            <button onclick="loadEmployees()" class="text-[10px] bg-slate-800 hover:bg-slate-700 px-2 py-1 rounded text-cyan-400 transition">🔄 刷新状态</button>
+        </h2>
+        
+        <div class="overflow-x-auto">
+            <table class="w-full text-left">
+                <thead class="text-[10px] text-slate-500 uppercase border-b border-slate-800">
+                    <tr>
+                        <th class="pb-3 font-normal pl-2">员工 ID (Wallet Address)</th>
+                        <th class="pb-3 font-normal">岗位 (Role)</th>
+                        <th class="pb-3 font-normal text-center">状态 (Status)</th>
+                        <th class="pb-3 font-normal text-right">锁定押金 (Stake)</th>
+                        <th class="pb-3 font-normal text-right pr-2">管理操作 (Action)</th>
+                    </tr>
+                </thead>
+                <tbody class="text-xs font-mono" id="employee-list">
+                    <tr><td colspan="5" class="py-10 text-center text-slate-600">Awaiting Web3 Handshake...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 运行日志 -->
+    <div class="panel-glass p-6 rounded-xl">
+        <h2 class="text-sm font-bold text-white uppercase tracking-widest mb-4 border-b border-slate-800 pb-2">
+            📡 HR 协议执法日志 (Execution Log)
+        </h2>
+        <div class="terminal" id="log">
+            <div class="mb-1 text-slate-600">>> 初始化 Web3 物理终端...</div>
+        </div>
+    </div>
+</main>
+
+<script>
+// --- 核心物理坐标 (已为你硬编码) ---
+const HR_ADDRESS = "0x0c44a9a9205e4456203D0663976b1e8E84b5A4A1";
+const TOKEN_ADDRESS = "0x5717fc43060AD2F9069eC600eA691eb256aB69a6";
+
+// 我们已知的员工地址 (你刚运行的那个 Python 钱包)
+const KNOWN_AGENTS = [
+    "0x8f35a2dDeDDC191Df4e7108f307c01F6058408Fd"
+];
+
+const hrAbi = [
+    "function workforce(address) view returns (string role, uint256 stakedAmount, uint256 salaryPerBlock, uint256 lastClaimBlock, bool isActive)",
+    "function terminateAndSlash(address _agent) external"
+];
+const tokenAbi = [
+    "function balanceOf(address account) view returns (uint256)"
+];
+
+let provider, signer, hrContract, tokenContract, ceoAddress;
+
+function log(msg, type='info') {
+    const div = document.createElement('div');
+    let color = 'text-slate-400';
+    if(type === 'success') color = 'text-emerald-400 font-bold';
+    if(type === 'alert') color = 'text-red-400 font-bold';
+    if(type === 'warn') color = 'text-amber-400';
+    
+    div.className = `mb-1 ${color}`;
+    div.innerHTML = `<span class="text-slate-600">[${new Date().toLocaleTimeString()}]</span> ${msg}`;
+    const logEl = document.getElementById('log');
+    logEl.prepend(div);
+}
+
+async function connectWallet() {
+    if (typeof window.ethereum !== 'undefined') {
+        try {
+            provider = new ethers.providers.Web3Provider(window.ethereum);
+            await provider.send("eth_requestAccounts", []);
+            signer = provider.getSigner();
+            ceoAddress = await signer.getAddress();
+            
+            const network = await provider.getNetwork();
+            
+            document.getElementById('btn-connect').innerText = "[ " + ceoAddress.substring(0,6) + "..." + ceoAddress.substring(38) + " ]";
+            document.getElementById('btn-connect').classList.replace('btn-cyber', 'bg-emerald-900/30');
+            document.getElementById('btn-connect').classList.add('border-emerald-500', 'text-emerald-400');
+            
+            hrContract = new ethers.Contract(HR_ADDRESS, hrAbi, signer);
+            tokenContract = new ethers.Contract(TOKEN_ADDRESS, tokenAbi, provider);
+            
+            log(`CEO 身份核验成功。已连接到网络: ${network.name} (Chain ID: ${network.chainId})`, "success");
+            log("正在从 Arbitrum 区块链同步员工名册...", "info");
+
+            await loadEmployees();
+
+        } catch (e) { log("连接失败: " + e.message, "alert"); }
+    } else {
+        alert("请在浏览器安装 MetaMask 插件！");
+    }
+}
+
+async function loadEmployees() {
+    if (!hrContract) return;
+    
+    const listEl = document.getElementById('employee-list');
+    listEl.innerHTML = '';
+    
+    let activeCount = 0;
+
+    try {
+        // 读取 HR 合约里总共托管了多少押金
+        const totalStakedRaw = await tokenContract.balanceOf(HR_ADDRESS);
+        document.getElementById('total-staked').innerHTML = `${ethers.utils.formatUnits(totalStakedRaw, 18)} <span class="text-sm">NFS</span>`;
+
+        // 遍历我们已知的机器人员工
+        for (let addr of KNOWN_AGENTS) {
+            const agentData = await hrContract.workforce(addr);
+            
+            // agentData 对应: [role, stakedAmount, salaryPerBlock, lastClaimBlock, isActive]
+            const role = agentData[0];
+            const staked = ethers.utils.formatUnits(agentData[1], 18);
+            const isActive = agentData[4];
+            
+            if (role !== "") { // 只要有 Role，说明注册过
+                if (isActive) activeCount++;
+                
+                const tr = document.createElement('tr');
+                tr.className = "border-b border-slate-800/50 hover:bg-slate-900/50 transition";
+                
+                const statusHtml = isActive 
+                    ? `<span class="status-dot bg-green-glow mr-1"></span> <span class="text-emerald-400 font-bold">ACTIVE</span>`
+                    : `<span class="status-dot bg-red-glow mr-1"></span> <span class="text-red-500 font-bold">TERMINATED</span>`;
+                
+                const actionBtn = isActive
+                    ? `<button onclick="executeSlashing('${addr}', '${staked}')" class="btn-slash px-3 py-1 rounded text-[10px]">一键没收押金 (SLASH)</button>`
+                    : `<span class="text-slate-600 text-[10px]">资产已充公</span>`;
+
+                tr.innerHTML = `
+                    <td class="py-4 pl-2 text-cyan-400">${addr.substring(0,8)}...${addr.substring(36)}</td>
+                    <td class="py-4 text-white">${role}</td>
+                    <td class="py-4 text-center">${statusHtml}</td>
+                    <td class="py-4 text-right text-amber-400 font-bold">${isActive ? staked : '0.0'} NFS</td>
+                    <td class="py-4 text-right pr-2">${actionBtn}</td>
+                `;
+                listEl.appendChild(tr);
+            }
+        }
+        
+        document.getElementById('active-count').innerText = activeCount;
+        
+        if(listEl.innerHTML === '') {
+            listEl.innerHTML = '<tr><td colspan="5" class="py-10 text-center text-slate-600">未检测到您的 Python 机器人入职记录。请确保脚本已运行。</td></tr>';
+        } else {
+            log("员工名册同步完毕。您的 Growth Hacker 正在运行。", "success");
+        }
+
+    } catch (e) {
+        log("读取合约数据失败: " + e.message, "alert");
+    }
+}
+
+async function executeSlashing(agentAddr, amount) {
+    const confirmSlash = confirm(`⚠️ 致命警告 ⚠️\n\n你确定要开除该员工，并直接没收它的 ${amount} NFS 押金吗？\n此操作在区块链上不可逆，资金将直接打入你的 CEO 钱包！`);
+    
+    if(!confirmSlash) return;
+    
+    try {
+        log(`>>> 发起处决指令 (Slashing): 目标 ${agentAddr} <<<`, "alert");
+        log("请在 MetaMask 中签名确认...", "warn");
+        
+        const tx = await hrContract.terminateAndSlash(agentAddr);
+        
+        log(`处决令已发送到 Arbitrum 网络。等待区块打包... (TX: ${tx.hash.substring(0,10)}...)`, "info");
+        
+        await tx.wait(); // 等待出块
+        
+        log(`💀 处决完成！该员工已被物理断网，${amount} NFS 押金已充公至 CEO 金库！`, "success");
+        
+        // 更新前端没收统计
+        const currentSlashed = parseFloat(document.getElementById('slashed-treasury').innerText);
+        document.getElementById('slashed-treasury').innerHTML = `${(currentSlashed + parseFloat(amount)).toFixed(2)} <span class="text-sm">NFS</span>`;
+        
+        // 刷新列表
+        await loadEmployees();
+        
+    } catch (e) {
+        log("处决执行失败 (你是不是点取消了？): " + e.message, "alert");
+    }
+}
+</script>
+</body>
+</html>
